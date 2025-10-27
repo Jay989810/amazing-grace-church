@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,40 +8,44 @@ import { Label } from "@/components/ui/label"
 import { LogOut, User } from "lucide-react"
 
 export default function AdminPage() {
-  const { data: session, status } = useSession()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Check if user is already authenticated on component mount
+  useEffect(() => {
+    const authStatus = localStorage.getItem('admin_authenticated')
+    if (authStatus === 'true') {
+      setIsAuthenticated(true)
+    }
+  }, [])
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
     
-    try {
-      await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      })
-    } catch (error) {
-      console.error('Sign in error:', error)
-    } finally {
-      setIsLoading(false)
+    // Simple authentication check
+    if (email === 'admin@amazinggracechurch.org' && password === 'grace1234') {
+      localStorage.setItem('admin_authenticated', 'true')
+      setIsAuthenticated(true)
+    } else {
+      setError('Invalid credentials. Please try again.')
     }
+    
+    setIsLoading(false)
   }
 
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-lg">Loading...</p>
-        </div>
-      </div>
-    )
+  const handleSignOut = () => {
+    localStorage.removeItem('admin_authenticated')
+    setIsAuthenticated(false)
+    setEmail('')
+    setPassword('')
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         <Card className="w-full max-w-md">
@@ -57,6 +60,11 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignIn} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-100 border border-red-300 rounded-md">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -102,9 +110,9 @@ export default function AdminPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold text-primary">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {session.user?.name}</p>
+            <p className="text-muted-foreground">Welcome back, Admin</p>
           </div>
-          <Button variant="outline" onClick={() => signOut()}>
+          <Button variant="outline" onClick={handleSignOut}>
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out
           </Button>
