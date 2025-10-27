@@ -1,0 +1,27 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Golden yellow circular background -->
+  <circle cx="200" cy="200" r="190" fill="#FBC02D" stroke="#F57F17" stroke-width="8"/>
+  
+  <!-- Inner golden circle -->
+  <circle cx="200" cy="200" r="170" fill="none" stroke="#F57F17" stroke-width="4"/>
+  
+  <!-- Cross - Vertical beam -->
+  <rect x="195" y="80" width="10" height="180" fill="#1A237E" rx="5"/>
+  
+  <!-- Cross - Horizontal beam -->
+  <rect x="120" y="185" width="160" height="10" fill="#1A237E" rx="5"/>
+  
+  <!-- Bible/Book at bottom -->
+  <rect x="140" y="280" width="120" height="80" fill="#1A237E" rx="8"/>
+  
+  <!-- Book pages -->
+  <rect x="145" y="285" width="110" height="35" fill="#283593" rx="4"/>
+  <rect x="145" y="325" width="110" height="30" fill="#3949AB" rx="4"/>
+  
+  <!-- Book spine -->
+  <rect x="200" y="280" width="4" height="80" fill="#0D47A1"/>
+  
+  <!-- Decorative elements -->
+  <circle cx="200" cy="200" r="3" fill="#FBC02D"/>
+  <circle cx="200" cy="200" r="1" fill="#1A237E"/>
+</svg>
