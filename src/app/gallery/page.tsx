@@ -1,121 +1,87 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Image as ImageIcon, Calendar, User, Filter, Search, Eye, Upload } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
+import { useSettings } from "@/components/settings-provider"
+
+interface GalleryImage {
+  id: string
+  originalName: string
+  filename: string
+  type: string
+  size: number
+  mimeType: string
+  url: string
+  uploadedAt: string
+}
 
 export default function GalleryPage() {
   const { toast } = useToast()
+  const { settings } = useSettings()
   const [selectedAlbum, setSelectedAlbum] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Sample gallery data - in a real app, this would come from your backend/database
-  const galleryImages = [
-    {
-      id: "1",
-      title: "Sunday Worship Service",
-      description: "Our congregation gathered for Sunday morning worship",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Worship Services",
-      date: "2024-01-21",
-      photographer: "Church Media Team"
-    },
-    {
-      id: "2",
-      title: "Youth Conference 2024",
-      description: "Young people from across the region gathered for our annual youth conference",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Youth Programs",
-      date: "2024-01-15",
-      photographer: "John Smith"
-    },
-    {
-      id: "3",
-      title: "Community Outreach",
-      description: "Serving our local community with love and compassion",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Community Service",
-      date: "2024-01-10",
-      photographer: "Mary Johnson"
-    },
-    {
-      id: "4",
-      title: "Bible Study Session",
-      description: "Deepening our understanding of God's Word together",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Bible Studies",
-      date: "2024-01-08",
-      photographer: "Church Media Team"
-    },
-    {
-      id: "5",
-      title: "Children's Ministry",
-      description: "Our youngest members learning about Jesus through fun activities",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Children's Ministry",
-      date: "2024-01-05",
-      photographer: "Sarah Wilson"
-    },
-    {
-      id: "6",
-      title: "Prayer Meeting",
-      description: "Coming together in prayer and fellowship",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Prayer Meetings",
-      date: "2024-01-03",
-      photographer: "Church Media Team"
-    },
-    {
-      id: "7",
-      title: "Christmas Celebration",
-      description: "Celebrating the birth of our Savior with joy and thanksgiving",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Special Events",
-      date: "2023-12-25",
-      photographer: "Church Media Team"
-    },
-    {
-      id: "8",
-      title: "Church Building",
-      description: "Our beautiful church building and grounds",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Church Facilities",
-      date: "2024-01-01",
-      photographer: "Church Media Team"
-    },
-    {
-      id: "9",
-      title: "Fellowship Dinner",
-      description: "Sharing meals and building relationships",
-      imageUrl: "/api/placeholder/400/300",
-      album: "Fellowship",
-      date: "2023-12-20",
-      photographer: "Church Media Team"
+  // Fetch gallery images from API
+  useEffect(() => {
+    const fetchGalleryImages = async () => {
+      try {
+        const response = await fetch('/api/upload?type=gallery')
+        if (response.ok) {
+          const data = await response.json()
+          setGalleryImages(data)
+        } else {
+          console.error('Failed to fetch gallery images')
+        }
+      } catch (error) {
+        console.error('Error fetching gallery images:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const albums = ["All", "Worship Services", "Youth Programs", "Community Service", "Bible Studies", "Children's Ministry", "Prayer Meetings", "Special Events", "Church Facilities", "Fellowship"]
+    fetchGalleryImages()
+  }, [])
 
   const handleSubmitPhotos = () => {
     toast({
       title: "Photo Submission",
-      description: "Thank you for wanting to share photos! Please email them to media@amazinggracechurch.org or contact us directly.",
+      description: `Thank you for wanting to share photos! Please email them to ${settings?.churchEmail || 'media@amazinggracechurch.org'} or contact us directly.`,
       variant: "success"
     })
   }
 
   const filteredImages = galleryImages.filter(image => {
-    const matchesAlbum = selectedAlbum === "All" || image.album === selectedAlbum
-    const matchesSearch = image.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         image.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         image.album.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesAlbum = selectedAlbum === "All" || image.originalName.toLowerCase().includes(selectedAlbum.toLowerCase())
+    const matchesSearch = image.originalName.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesAlbum && matchesSearch
   })
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Loading gallery...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen">
@@ -134,7 +100,7 @@ export default function GalleryPage() {
               Media Gallery
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-              Capturing moments of worship, fellowship, and community life at Amazing Grace Baptist Church
+              Capturing moments of worship, fellowship, and community life at {settings?.churchName || "Amazing Grace Baptist Church"}
             </p>
           </div>
         </div>
@@ -158,18 +124,15 @@ export default function GalleryPage() {
 
             {/* Album Filter */}
             <div className="flex gap-2 flex-wrap">
-              {albums.map((album) => (
-                <Button
-                  key={album}
-                  variant={selectedAlbum === album ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedAlbum(album)}
-                  className="flex items-center gap-2"
-                >
-                  <Filter className="h-4 w-4" />
-                  {album}
-                </Button>
-              ))}
+              <Button
+                variant={selectedAlbum === "All" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedAlbum("All")}
+                className="flex items-center gap-2"
+              >
+                <Filter className="h-4 w-4" />
+                All Photos
+              </Button>
             </div>
           </div>
         </div>
@@ -181,36 +144,50 @@ export default function GalleryPage() {
           {filteredImages.length === 0 ? (
             <div className="text-center py-12">
               <ImageIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg text-muted-foreground">No photos found matching your criteria.</p>
+              <p className="text-lg text-muted-foreground">
+                {galleryImages.length === 0 
+                  ? "No photos uploaded yet. Check back soon for gallery updates!" 
+                  : "No photos found matching your criteria."
+                }
+              </p>
+              {galleryImages.length === 0 && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Photos will appear here once uploaded by the admin.
+                </p>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden group cursor-pointer" onClick={() => setSelectedImage(image.imageUrl)}>
+                <Card key={image.id} className="overflow-hidden group cursor-pointer" onClick={() => setSelectedImage(image)}>
                   <div className="aspect-video bg-muted relative overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground" />
-                    </div>
+                    <img
+                      src={image.url}
+                      alt={image.originalName}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                       <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
-                      {image.album}
+                      Gallery
                     </div>
                   </div>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg line-clamp-2">{image.title}</CardTitle>
-                    <CardDescription className="line-clamp-2">{image.description}</CardDescription>
+                    <CardTitle className="text-lg line-clamp-2">{image.originalName}</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      Uploaded by admin
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {formatDate(image.date)}
+                        {formatDate(image.uploadedAt)}
                       </div>
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {image.photographer}
+                        {formatFileSize(image.size)}
                       </div>
                     </div>
                   </CardContent>
@@ -225,17 +202,25 @@ export default function GalleryPage() {
       {selectedImage && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
           <div className="max-w-4xl max-h-full bg-background rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="aspect-video bg-muted flex items-center justify-center">
-              <ImageIcon className="h-24 w-24 text-muted-foreground" />
+            <div className="aspect-video bg-muted relative">
+              <img
+                src={selectedImage.url}
+                alt={selectedImage.originalName}
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold">Image Title</h3>
+                <h3 className="text-xl font-semibold">{selectedImage.originalName}</h3>
                 <Button variant="outline" size="sm" onClick={() => setSelectedImage(null)}>
                   Close
                 </Button>
               </div>
-              <p className="text-muted-foreground">Image description and details would go here.</p>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Size: {formatFileSize(selectedImage.size)}</p>
+                <p>Uploaded: {formatDate(selectedImage.uploadedAt)}</p>
+                <p>Type: {selectedImage.mimeType}</p>
+              </div>
             </div>
           </div>
         </div>

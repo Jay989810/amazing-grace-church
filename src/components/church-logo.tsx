@@ -1,15 +1,22 @@
 "use client"
 
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 interface LogoProps {
   className?: string
   size?: "sm" | "md" | "lg" | "xl"
 }
 
+interface Settings {
+  heroImage?: string
+  churchName?: string
+}
+
 export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
   const [imageError, setImageError] = useState(false)
+  const [settings, setSettings] = useState<Settings>({})
+  const [loading, setLoading] = useState(true)
   
   const sizeClasses = {
     sm: "w-16 h-16",
@@ -18,8 +25,27 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
     xl: "w-40 h-40"
   }
 
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/api/settings')
+        if (response.ok) {
+          const settingsData = await response.json()
+          setSettings(settingsData)
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadSettings()
+  }, [])
+
   // If image fails to load, show the designed logo
-  if (imageError) {
+  if (imageError || !settings.heroImage) {
     return (
       <div className={`${sizeClasses[size]} ${className}`}>
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-4 border-yellow-300 shadow-lg">
@@ -39,11 +65,19 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
     )
   }
 
+  if (loading) {
+    return (
+      <div className={`${sizeClasses[size]} ${className}`}>
+        <div className="w-full h-full bg-muted animate-pulse rounded-full"></div>
+      </div>
+    )
+  }
+
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
       <Image
-        src="/church-logo.svg"
-        alt="Amazing Grace Baptist Church Logo"
+        src={settings.heroImage || "/church-logo.svg"}
+        alt={`${settings.churchName || "Amazing Grace Baptist Church"} Logo`}
         width={160}
         height={160}
         className="w-full h-full object-contain"
@@ -53,4 +87,3 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
     </div>
   )
 }
-

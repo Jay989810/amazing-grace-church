@@ -2,33 +2,22 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Heart, Users, BookOpen, Globe, Award, User } from "lucide-react"
+import { Heart, Users, BookOpen, Globe, Award, User, Clock, MapPin, Phone, Mail } from "lucide-react"
 import Link from "next/link"
 import { ChurchLogo } from "@/components/church-logo"
 import Image from "next/image"
+import { useSettings } from "@/components/settings-provider"
 
 export default function AboutPage() {
+  const { settings } = useSettings()
+  
   const leadership = [
     {
-      name: "Pastor John Doe",
+      name: settings?.pastorName || "Rev. John Joseph Hayab",
       role: "Senior Pastor",
-      image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-      bio: "Pastor John has been serving Amazing Grace Baptist Church for over 15 years. He holds a Master of Divinity degree and is passionate about community outreach and spiritual growth.",
-      email: "pastor@amazinggracechurch.org"
-    },
-    {
-      name: "Elder Mary Johnson",
-      role: "Associate Pastor",
-      image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face",
-      bio: "Elder Mary leads our youth ministry and community programs. She brings over 10 years of experience in pastoral care and discipleship.",
-      email: "mary@amazinggracechurch.org"
-    },
-    {
-      name: "Deacon James Wilson",
-      role: "Church Administrator",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-      bio: "Deacon James oversees the administrative aspects of our church operations and coordinates our outreach programs.",
-      email: "james@amazinggracechurch.org"
+      image: settings?.aboutImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
+      bio: `${settings?.pastorName || "Rev. John Joseph Hayab"} has been serving ${settings?.churchName || "Amazing Grace Baptist Church"} for many years. He is passionate about community outreach and spiritual growth.`,
+      email: settings?.churchEmail || "pastor@amazinggracechurch.org"
     }
   ]
 
@@ -85,7 +74,7 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-primary mb-8 text-center">Our History</h2>
             <div className="prose prose-lg max-w-none">
               <p className="text-lg text-muted-foreground mb-6">
-                Amazing Grace Baptist Church was established in 1985 in U/Zawu, Gonin Gora, Kaduna State, Nigeria. 
+                Amazing Grace Baptist Church was established in 2015 in U/Zawu, Gonin Gora, Kaduna State, Nigeria. 
                 What began as a small gathering of believers has grown into a vibrant community of faith serving 
                 hundreds of families in our local area.
               </p>
@@ -240,7 +229,7 @@ export default function AboutPage() {
                 I look forward to meeting you and sharing in the joy of God's amazing grace!
               </p>
               <div className="mt-8 text-right">
-                <p className="font-semibold text-primary">Pastor John Doe</p>
+                <p className="font-semibold text-primary">Rev. John Joseph Hayab</p>
                 <p className="text-muted-foreground">Senior Pastor</p>
               </div>
             </CardContent>

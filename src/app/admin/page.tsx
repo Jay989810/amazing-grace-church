@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
-import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X } from "lucide-react"
+import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { FileUpload } from "@/components/file-upload"
 
 // Types
 interface Sermon {
@@ -70,6 +71,8 @@ export default function AdminPage() {
   const [events, setEvents] = useState<Event[]>([])
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([])
+  const [settings, setSettings] = useState<any>({})
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
   
   // UI state
   const [activeTab, setActiveTab] = useState('sermons')
@@ -97,6 +100,39 @@ export default function AdminPage() {
     location: ''
   })
 
+  const [settingsForm, setSettingsForm] = useState({
+    churchName: '',
+    churchAddress: '',
+    churchPhone: '',
+    churchEmail: '',
+    pastorName: '',
+    churchDescription: '',
+    heroImage: '',
+    aboutImage: '',
+    services: {
+      sunday: '',
+      wednesday: '',
+      friday: ''
+    },
+    socialMedia: {
+      facebook: '',
+      instagram: '',
+      youtube: '',
+      twitter: ''
+    },
+    contactInfo: {
+      address: '',
+      phone: '',
+      email: '',
+      hours: ''
+    },
+    seo: {
+      title: '',
+      description: '',
+      keywords: ''
+    }
+  })
+
   // Load data on component mount
   useEffect(() => {
     if (session) {
@@ -106,17 +142,25 @@ export default function AdminPage() {
 
   const loadAllData = async () => {
     try {
-      const [sermonsRes, eventsRes, galleryRes, messagesRes] = await Promise.all([
+      const [sermonsRes, eventsRes, galleryRes, messagesRes, settingsRes, filesRes] = await Promise.all([
         fetch('/api/sermons'),
         fetch('/api/events'),
         fetch('/api/gallery'),
-        fetch('/api/messages')
+        fetch('/api/messages'),
+        fetch('/api/settings'),
+        fetch('/api/upload')
       ])
       
       if (sermonsRes.ok) setSermons(await sermonsRes.json())
       if (eventsRes.ok) setEvents(await eventsRes.json())
       if (galleryRes.ok) setGalleryImages(await galleryRes.json())
       if (messagesRes.ok) setContactMessages(await messagesRes.json())
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json()
+        setSettings(settingsData)
+        setSettingsForm(settingsData)
+      }
+      if (filesRes.ok) setUploadedFiles(await filesRes.json())
     } catch (error) {
       console.error('Error loading data:', error)
       toast({
@@ -340,6 +384,57 @@ export default function AdminPage() {
     setIsEditing(true)
   }
 
+  // Settings management functions
+  const handleUpdateSettings = async () => {
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settingsForm)
+      })
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Settings updated successfully"
+        })
+        loadAllData() // Reload to get updated settings
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update settings",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleFileUploadComplete = (file: any) => {
+    setUploadedFiles(prev => [file, ...prev])
+  }
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      const response = await fetch(`/api/upload?id=${fileId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        setUploadedFiles(prev => prev.filter(f => f.id !== fileId))
+        toast({
+          title: "Success",
+          description: "File deleted successfully"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete file",
+        variant: "destructive"
+      })
+    }
+  }
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -512,6 +607,24 @@ export default function AdminPage() {
                       rows={3}
                     />
                   </div>
+                  {/* File Upload Section */}
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Upload Audio/Video Files</h4>
+                    <FileUpload
+                      type="sermon"
+                      accept="audio/*,video/*"
+                      maxSize={100}
+                      multiple={false}
+                      onUploadComplete={(file) => {
+                        if (file.mimeType.startsWith('audio/')) {
+                          setSermonForm({...sermonForm, audio_url: file.url})
+                        } else if (file.mimeType.startsWith('video/')) {
+                          setSermonForm({...sermonForm, video_url: file.url})
+                        }
+                      }}
+                    />
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="sermon-audio">Audio URL</Label>
@@ -727,22 +840,75 @@ export default function AdminPage() {
 
           {/* Gallery Tab */}
           {activeTab === 'gallery' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Image className="w-5 h-5 mr-2" />
-                  Gallery Management
-                </CardTitle>
-                <CardDescription>
-                  Upload and manage church photos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Gallery management coming soon. For now, you can manage images through the API.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              {/* Upload Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Image className="w-5 h-5 mr-2" />
+                    Upload Gallery Images
+                  </CardTitle>
+                  <CardDescription>
+                    Drag and drop images or click to browse. Supports JPG, PNG, GIF, WebP formats.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FileUpload
+                    type="gallery"
+                    accept="image/*"
+                    maxSize={10}
+                    multiple={true}
+                    onUploadComplete={handleFileUploadComplete}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Gallery Images */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Gallery Images ({uploadedFiles.filter(f => f.type === 'gallery').length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {uploadedFiles
+                      .filter(file => file.type === 'gallery')
+                      .map((file) => (
+                        <div key={file.id} className="relative group">
+                          <img
+                            src={file.url}
+                            alt={file.originalName}
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                            <div className="flex space-x-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => window.open(file.url, '_blank')}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteFile(file.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {file.originalName}
+                          </p>
+                        </div>
+                      ))}
+                  </div>
+                  {uploadedFiles.filter(f => f.type === 'gallery').length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">No gallery images uploaded yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* Messages Tab */}
@@ -783,22 +949,299 @@ export default function AdminPage() {
 
           {/* Settings Tab */}
           {activeTab === 'settings' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Settings className="w-5 h-5 mr-2" />
-                  Church Settings
-                </CardTitle>
-                <CardDescription>
-                  Configure church information and settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground py-8">
-                  Settings management coming soon. You can update church information through the API.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              {/* Basic Church Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Settings className="w-5 h-5 mr-2" />
+                    Church Information
+                  </CardTitle>
+                  <CardDescription>
+                    Update basic church information and contact details
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="church-name">Church Name</Label>
+                      <Input
+                        id="church-name"
+                        value={settingsForm.churchName}
+                        onChange={(e) => setSettingsForm({...settingsForm, churchName: e.target.value})}
+                        placeholder="Amazing Grace Baptist Church"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="pastor-name">Pastor Name</Label>
+                      <Input
+                        id="pastor-name"
+                        value={settingsForm.pastorName}
+                        onChange={(e) => setSettingsForm({...settingsForm, pastorName: e.target.value})}
+                        placeholder="Pastor John Doe"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="church-phone">Phone Number</Label>
+                      <Input
+                        id="church-phone"
+                        value={settingsForm.churchPhone}
+                        onChange={(e) => setSettingsForm({...settingsForm, churchPhone: e.target.value})}
+                        placeholder="+234 XXX XXX XXXX"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="church-email">Email Address</Label>
+                      <Input
+                        id="church-email"
+                        type="email"
+                        value={settingsForm.churchEmail}
+                        onChange={(e) => setSettingsForm({...settingsForm, churchEmail: e.target.value})}
+                        placeholder="info@amazinggracechurch.org"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="church-address">Address</Label>
+                    <Textarea
+                      id="church-address"
+                      value={settingsForm.churchAddress}
+                      onChange={(e) => setSettingsForm({...settingsForm, churchAddress: e.target.value})}
+                      placeholder="U/Zawu, Gonin Gora, Kaduna State, Nigeria"
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="church-description">Church Description</Label>
+                    <Textarea
+                      id="church-description"
+                      value={settingsForm.churchDescription}
+                      onChange={(e) => setSettingsForm({...settingsForm, churchDescription: e.target.value})}
+                      placeholder="Welcome to Amazing Grace Baptist Church..."
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Service Times */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Clock className="w-5 h-5 mr-2" />
+                    Service Times
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="sunday-service">Sunday Service</Label>
+                      <Input
+                        id="sunday-service"
+                        value={settingsForm.services.sunday}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          services: {...settingsForm.services, sunday: e.target.value}
+                        })}
+                        placeholder="10:00 AM - 12:00 PM"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="wednesday-service">Wednesday Service</Label>
+                      <Input
+                        id="wednesday-service"
+                        value={settingsForm.services.wednesday}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          services: {...settingsForm.services, wednesday: e.target.value}
+                        })}
+                        placeholder="6:00 PM - 7:30 PM"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="friday-service">Friday Service</Label>
+                      <Input
+                        id="friday-service"
+                        value={settingsForm.services.friday}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          services: {...settingsForm.services, friday: e.target.value}
+                        })}
+                        placeholder="7:00 PM - 8:30 PM"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Social Media */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Globe className="w-5 h-5 mr-2" />
+                    Social Media Links
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="facebook">Facebook</Label>
+                      <Input
+                        id="facebook"
+                        value={settingsForm.socialMedia.facebook}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          socialMedia: {...settingsForm.socialMedia, facebook: e.target.value}
+                        })}
+                        placeholder="https://facebook.com/amazinggracechurch"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="instagram">Instagram</Label>
+                      <Input
+                        id="instagram"
+                        value={settingsForm.socialMedia.instagram}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          socialMedia: {...settingsForm.socialMedia, instagram: e.target.value}
+                        })}
+                        placeholder="https://instagram.com/amazinggracechurch"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="youtube">YouTube</Label>
+                      <Input
+                        id="youtube"
+                        value={settingsForm.socialMedia.youtube}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          socialMedia: {...settingsForm.socialMedia, youtube: e.target.value}
+                        })}
+                        placeholder="https://youtube.com/@amazinggracechurch"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="twitter">Twitter</Label>
+                      <Input
+                        id="twitter"
+                        value={settingsForm.socialMedia.twitter}
+                        onChange={(e) => setSettingsForm({
+                          ...settingsForm, 
+                          socialMedia: {...settingsForm.socialMedia, twitter: e.target.value}
+                        })}
+                        placeholder="https://twitter.com/amazinggracechurch"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* File Uploads for Images */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Upload className="w-5 h-5 mr-2" />
+                    Website Images
+                  </CardTitle>
+                  <CardDescription>
+                    Upload and manage images used throughout the website
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <FileUpload
+                    type="settings"
+                    accept="image/*"
+                    maxSize={5}
+                    multiple={false}
+                    onUploadComplete={(file) => {
+                      setSettingsForm({...settingsForm, heroImage: file.url})
+                    }}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="hero-image">Hero Image URL</Label>
+                      <Input
+                        id="hero-image"
+                        value={settingsForm.heroImage}
+                        onChange={(e) => setSettingsForm({...settingsForm, heroImage: e.target.value})}
+                        placeholder="/uploads/settings/hero-image.jpg"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="about-image">About Image URL</Label>
+                      <Input
+                        id="about-image"
+                        value={settingsForm.aboutImage}
+                        onChange={(e) => setSettingsForm({...settingsForm, aboutImage: e.target.value})}
+                        placeholder="/uploads/settings/about-image.jpg"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* SEO Settings */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Globe className="w-5 h-5 mr-2" />
+                    SEO Settings
+                  </CardTitle>
+                  <CardDescription>
+                    Configure search engine optimization settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="seo-title">Page Title</Label>
+                    <Input
+                      id="seo-title"
+                      value={settingsForm.seo.title}
+                      onChange={(e) => setSettingsForm({
+                        ...settingsForm, 
+                        seo: {...settingsForm.seo, title: e.target.value}
+                      })}
+                      placeholder="Amazing Grace Baptist Church - U/Zawu, Gonin Gora, Kaduna State"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="seo-description">Meta Description</Label>
+                    <Textarea
+                      id="seo-description"
+                      value={settingsForm.seo.description}
+                      onChange={(e) => setSettingsForm({
+                        ...settingsForm, 
+                        seo: {...settingsForm.seo, description: e.target.value}
+                      })}
+                      placeholder="Welcome to Amazing Grace Baptist Church..."
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="seo-keywords">Keywords</Label>
+                    <Input
+                      id="seo-keywords"
+                      value={settingsForm.seo.keywords}
+                      onChange={(e) => setSettingsForm({
+                        ...settingsForm, 
+                        seo: {...settingsForm.seo, keywords: e.target.value}
+                      })}
+                      placeholder="church, baptist, kaduna, nigeria, worship, fellowship"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Save Settings */}
+              <Card>
+                <CardContent className="pt-6">
+                  <Button onClick={handleUpdateSettings} className="w-full">
+                    <Save className="w-4 h-4 mr-2" />
+                    Save All Settings
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           )}
         </div>
       </div>

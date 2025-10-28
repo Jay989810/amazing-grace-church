@@ -1,22 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
+import { getCollection } from '@/lib/mongodb'
 
 export async function GET() {
   try {
-    const { data: settings, error } = await supabase
-      .from('church_settings')
-      .select('*')
-      .single()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const settingsCollection = await getCollection('settings')
+    const settings = await settingsCollection.findOne({ type: 'website' })
+    
+    if (!settings) {
+      // Return default settings if none exist
+      const defaultSettings = {
+        churchName: "Amazing Grace Baptist Church",
+        churchAddress: "U/Zawu, Gonin Gora, Kaduna State, Nigeria",
+        churchPhone: "+234 XXX XXX XXXX",
+        churchEmail: "info@amazinggracechurch.org",
+        pastorName: "Pastor John Doe",
+        churchDescription: "Welcome to Amazing Grace Baptist Church. Join us for worship, fellowship, and spiritual growth.",
+        heroImage: "/church-logo.png",
+        aboutImage: "/church-logo.png",
+        services: {
+          sunday: "10:00 AM - 12:00 PM",
+          wednesday: "6:00 PM - 7:30 PM",
+          friday: "7:00 PM - 8:30 PM"
+        },
+        socialMedia: {
+          facebook: "",
+          instagram: "",
+          youtube: "",
+          twitter: ""
+        },
+        contactInfo: {
+          address: "U/Zawu, Gonin Gora, Kaduna State, Nigeria",
+          phone: "+234 XXX XXX XXXX",
+          email: "info@amazinggracechurch.org",
+          hours: "Monday - Friday: 9:00 AM - 5:00 PM"
+        },
+        seo: {
+          title: "Amazing Grace Baptist Church - U/Zawu, Gonin Gora, Kaduna State",
+          description: "Welcome to Amazing Grace Baptist Church. Join us for worship, fellowship, and spiritual growth.",
+          keywords: "church, baptist, kaduna, nigeria, worship, fellowship, sermons, amazing grace"
+        }
+      }
+      return NextResponse.json(defaultSettings)
     }
-
-    return NextResponse.json(settings)
+    
+    return NextResponse.json(settings.data)
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch church settings' }, { status: 500 })
+    console.error('Error fetching settings:', error)
+    return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
   }
 }
 
@@ -29,32 +61,32 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, address, phone, email, pastor, service_times, social_media } = body
-
-    const { data, error } = await supabase
-      .from('church_settings')
-      .insert([
-        {
-          name,
-          address,
-          phone,
-          email,
-          pastor,
-          service_times,
-          social_media,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+    
+    const settingsCollection = await getCollection('settings')
+    
+    // Update or create settings
+    const result = await settingsCollection.updateOne(
+      { type: 'website' },
+      { 
+        $set: { 
+          type: 'website',
+          data: body,
+          updatedAt: new Date().toISOString(),
+          updatedBy: session.user.email
         }
-      ])
-      .select()
+      },
+      { upsert: true }
+    )
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(data[0], { status: 201 })
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Settings updated successfully',
+      updated: result.modifiedCount > 0,
+      created: result.upsertedCount > 0
+    })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to create church settings' }, { status: 500 })
+    console.error('Error updating settings:', error)
+    return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
   }
 }
 
@@ -67,23 +99,34 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { id, ...updateData } = body
-
-    const { data, error } = await supabase
-      .from('church_settings')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const { section, data } = body
+    
+    if (!section) {
+      return NextResponse.json({ error: 'Section is required' }, { status: 400 })
     }
 
-    return NextResponse.json(data[0])
+    const settingsCollection = await getCollection('settings')
+    
+    // Update specific section
+    const result = await settingsCollection.updateOne(
+      { type: 'website' },
+      { 
+        $set: { 
+          [`data.${section}`]: data,
+          updatedAt: new Date().toISOString(),
+          updatedBy: session.user.email
+        }
+      },
+      { upsert: true }
+    )
+
+    return NextResponse.json({ 
+      success: true, 
+      message: `${section} updated successfully`,
+      updated: result.modifiedCount > 0
+    })
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update church settings' }, { status: 500 })
+    console.error('Error updating settings section:', error)
+    return NextResponse.json({ error: 'Failed to update settings section' }, { status: 500 })
   }
 }

@@ -8,9 +8,11 @@ import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { ChurchLogo } from "@/components/church-logo"
+import { useSettings } from "@/components/settings-provider"
 
 export default function Home() {
   const { toast } = useToast()
+  const { settings } = useSettings()
   const [isSubscribing, setIsSubscribing] = useState(false)
 
   // Sample data - in a real app, this would come from your backend/database

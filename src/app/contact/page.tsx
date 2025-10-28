@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { MapPin, Phone, Mail, Clock, Send, Facebook, Instagram, Youtube, Twitter } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
+import { useSettings } from "@/components/settings-provider"
 
 export default function ContactPage() {
   const { toast } = useToast()
+  const { settings } = useSettings()
   const [formData, setFormData] = useState({
     name: "",
     email: "",

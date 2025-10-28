@@ -11,6 +11,7 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+// Default metadata - will be overridden by dynamic settings
 export const metadata: Metadata = {
   title: "Amazing Grace Baptist Church - U/Zawu, Gonin Gora, Kaduna State",
   description: "Welcome to Amazing Grace Baptist Church. Join us for worship, fellowship, and spiritual growth. Located in U/Zawu, Gonin Gora, Kaduna State, Nigeria.",

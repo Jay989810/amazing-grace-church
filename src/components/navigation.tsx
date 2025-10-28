@@ -7,6 +7,7 @@ import { Moon, Sun, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ChurchLogo } from "@/components/church-logo"
+import { useSettings } from "@/components/settings-provider"
 
 const navigation = [
   { name: "Home", href: "/" },
@@ -19,7 +20,14 @@ const navigation = [
 
 export function Navigation() {
   const { theme, setTheme } = useTheme()
+  const { settings } = useSettings()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+
+  // Extract church name parts for display
+  const churchName = settings?.churchName || "Amazing Grace Baptist Church"
+  const nameParts = churchName.split(" ")
+  const mainName = nameParts.slice(0, -2).join(" ") || "Amazing Grace"
+  const churchType = nameParts.slice(-2).join(" ") || "Baptist Church"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -30,8 +38,8 @@ export function Navigation() {
             <Link href="/" className="flex items-center space-x-3">
               <ChurchLogo size="sm" />
               <div className="hidden sm:block">
-                <h1 className="text-xl font-bold text-primary">Amazing Grace</h1>
-                <p className="text-xs text-muted-foreground">Baptist Church</p>
+                <h1 className="text-xl font-bold text-primary">{mainName}</h1>
+                <p className="text-xs text-muted-foreground">{churchType}</p>
               </div>
             </Link>
           </div>

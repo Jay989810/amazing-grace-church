@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Image optimization
   images: {
     remotePatterns: [
       {
@@ -9,8 +10,20 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
   },
+  
+  // Server external packages for MongoDB
+  serverExternalPackages: ['mongodb'],
+  
+  // Turbopack configuration for Next.js 16
+  turbopack: {},
 };
 
 export default nextConfig;

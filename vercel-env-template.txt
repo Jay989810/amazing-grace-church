@@ -1,0 +1,33 @@
+# Vercel Environment Variables Template
+# Copy these to your Vercel project settings
+
+# Database
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/amazing-grace-church?retryWrites=true&w=majority
+
+# Authentication
+NEXTAUTH_SECRET=your-super-secret-key-here
+NEXTAUTH_URL=https://your-app-name.vercel.app
+
+# Admin Credentials
+ADMIN_EMAIL=admin@amazinggracechurch.org
+ADMIN_PASSWORD=your-secure-admin-password
+
+# Email Configuration
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Supabase Storage
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=church-media
+
+# Google Services
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+
+# Church Information
+NEXT_PUBLIC_CHURCH_NAME=Amazing Grace Baptist Church
+NEXT_PUBLIC_CHURCH_ADDRESS=U/Zawu, Gonin Gora, Kaduna State, Nigeria
+NEXT_PUBLIC_CHURCH_PHONE=+234 XXX XXX XXXX
+NEXT_PUBLIC_CHURCH_EMAIL=info@amazinggracechurch.org
