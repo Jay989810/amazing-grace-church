@@ -126,7 +126,7 @@ async function testMongoDBConnection() {
       
     } catch (error) {
       console.error('❌ MongoDB connection failed!')
-      console.error('Error:', error.message)
+      console.error('Error:', error instanceof Error ? error.message : String(error))
       
       console.log('\n🔧 Troubleshooting tips:')
       console.log('1. Check your MongoDB Atlas connection string')
@@ -142,7 +142,7 @@ async function testMongoDBConnection() {
     }
     
   } catch (error) {
-    console.error('❌ Failed to read .env.local file:', error.message)
+    console.error('❌ Failed to read .env.local file:', error instanceof Error ? error.message : String(error))
   }
 }
 

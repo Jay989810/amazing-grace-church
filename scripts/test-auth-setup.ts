@@ -73,7 +73,7 @@ async function testAuthSetup() {
     console.log('3. The admin dashboard should now work properly!')
     
   } catch (error) {
-    console.error('❌ NextAuth setup test failed:', error.message)
+    console.error('❌ NextAuth setup test failed:', error instanceof Error ? error.message : String(error))
     process.exit(1)
   }
 }

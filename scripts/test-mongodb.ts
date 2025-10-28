@@ -82,7 +82,7 @@ async function testMongoDBConnection() {
     
   } catch (error) {
     console.error('❌ MongoDB connection failed!')
-    console.error('Error:', error.message)
+    console.error('Error:', error instanceof Error ? error.message : String(error))
     
     console.log('\n🔧 Troubleshooting tips:')
     console.log('1. Make sure MongoDB is running locally (mongod)')
