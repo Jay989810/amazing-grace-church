@@ -14,9 +14,13 @@ interface Event {
   description: string
   date: string
   time: string
-  location: string
+  venue: string
   type: string
   image?: string
+  registrationRequired?: boolean
+  registrationUrl?: string
+  currentAttendees?: number
+  maxAttendees?: number
 }
 
 export default function EventsPage() {
@@ -53,7 +57,7 @@ export default function EventsPage() {
     const matchesType = selectedType === "All" || event.title.toLowerCase().includes(selectedType.toLowerCase())
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.location.toLowerCase().includes(searchTerm.toLowerCase())
+                         event.venue.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesType && matchesSearch
   })
 
@@ -184,7 +188,7 @@ export default function EventsPage() {
                       </p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        <span>{event.currentAttendees}/{event.maxAttendees} registered</span>
+                        <span>{event.currentAttendees || 0}/{event.maxAttendees || '∞'} registered</span>
                       </div>
                       <div className="flex gap-2">
                         {event.registrationRequired ? (

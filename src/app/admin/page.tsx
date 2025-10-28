@@ -496,7 +496,7 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">
                 <strong>Default Credentials:</strong><br />
                 Email: admin@amazinggracechurch.org<br />
-                Password: grace1234
+                Password: [Hidden for security]
               </p>
             </div>
           </CardContent>

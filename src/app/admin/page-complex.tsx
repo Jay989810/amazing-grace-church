@@ -372,7 +372,7 @@ export default function AdminDashboard() {
                 className="w-full"
                 onClick={() => signIn('credentials', {
                   email: 'admin@amazinggracechurch.org',
-                  password: 'grace1234',
+                  password: '[REDACTED]',
                   callbackUrl: '/admin'
                 })}
               >

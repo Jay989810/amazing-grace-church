@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { getCollection } from './mongodb'
 import { UserDocument } from './models'
+import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -26,8 +27,9 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          // Simple password check (in production, use bcrypt)
-          if (user.password === credentials.password) {
+          // Secure password check using bcrypt
+          const isValidPassword = await bcrypt.compare(credentials.password, user.password)
+          if (isValidPassword) {
             return {
               id: user._id?.toString() || '',
               email: user.email,
@@ -50,12 +52,12 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role
+        token.role = (user as any).role
       }
       return token
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.sub || ''
         session.user.role = token.role as string
       }

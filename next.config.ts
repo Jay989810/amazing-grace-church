@@ -21,9 +21,6 @@ const nextConfig: NextConfig = {
   
   // Server external packages for MongoDB
   serverExternalPackages: ['mongodb'],
-  
-  // Turbopack configuration for Next.js 16
-  turbopack: {},
 };
 
 export default nextConfig;
