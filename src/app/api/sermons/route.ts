@@ -13,7 +13,12 @@ export async function GET() {
       .toArray() as SermonDocument[]
 
     const apiSermons = sermons.map(sermonDocumentToApi)
-    return NextResponse.json(apiSermons)
+    
+    // Add caching headers for better performance
+    const response = NextResponse.json(apiSermons)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+    
+    return response
   } catch (error) {
     console.error('Error fetching sermons:', error)
     return NextResponse.json({ error: 'Failed to fetch sermons' }, { status: 500 })

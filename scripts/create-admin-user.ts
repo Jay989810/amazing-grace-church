@@ -7,7 +7,7 @@ async function createAdminUser() {
     
     // Get admin credentials from environment variables
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@amazinggracechurch.org'
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123'
+    const adminPassword = process.env.ADMIN_PASSWORD || 'grace1234'
     const adminName = 'Administrator'
     
     // Hash the password

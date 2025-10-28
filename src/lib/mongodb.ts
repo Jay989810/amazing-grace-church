@@ -1,11 +1,22 @@
 import { MongoClient, Db } from 'mongodb'
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your MongoDB URI to .env.local')
+// Check for MongoDB URI in multiple possible environment variable names
+const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI
+
+if (!mongoUri) {
+  throw new Error('Please add your MongoDB URI to .env.local as MONGODB_URI or MONGO_URI')
 }
 
-const uri = process.env.MONGODB_URI
-const options = {}
+const uri = mongoUri
+const options = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  maxPoolSize: 10, // Maintain up to 10 socket connections
+  serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+  socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+  bufferMaxEntries: 0, // Disable mongoose buffering
+  bufferCommands: false, // Disable mongoose buffering
+}
 
 let client: MongoClient
 let clientPromise: Promise<MongoClient>

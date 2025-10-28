@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useSession, signIn, signOut } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -73,6 +73,7 @@ export default function AdminPage() {
   const [contactMessages, setContactMessages] = useState<ContactMessage[]>([])
   const [settings, setSettings] = useState<any>({})
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
+  const [isLoadingData, setIsLoadingData] = useState(false)
   
   // UI state
   const [activeTab, setActiveTab] = useState('sermons')
@@ -140,7 +141,9 @@ export default function AdminPage() {
     }
   }, [session])
 
-  const loadAllData = async () => {
+  // Memoize the loadAllData function to prevent unnecessary re-renders
+  const loadAllData = useCallback(async () => {
+    setIsLoadingData(true)
     try {
       const [sermonsRes, eventsRes, galleryRes, messagesRes, settingsRes, filesRes] = await Promise.all([
         fetch('/api/sermons'),
@@ -168,8 +171,11 @@ export default function AdminPage() {
         description: "Failed to load data",
         variant: "destructive"
       })
+    } finally {
+      setIsLoadingData(false)
     }
-  }
+  }, [toast])
+
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -496,7 +502,7 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">
                 <strong>Default Credentials:</strong><br />
                 Email: admin@amazinggracechurch.org<br />
-                Password: admin123<br />
+                Password: grace1234<br />
                 <br />
                 <em>Note: Run "npm run create-admin" to set up admin user in database</em>
               </p>
@@ -511,19 +517,19 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-primary">Admin Dashboard</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary">Admin Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {session.user?.name || 'Admin'}</p>
           </div>
-          <Button variant="outline" onClick={handleSignOut}>
+          <Button variant="outline" onClick={handleSignOut} className="w-full sm:w-auto">
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out
           </Button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex space-x-1 mb-6 bg-muted p-1 rounded-lg">
+        <div className="flex flex-wrap gap-1 mb-6 bg-muted p-1 rounded-lg">
           {[
             { id: 'sermons', label: 'Sermons', icon: Music },
             { id: 'events', label: 'Events', icon: Calendar },
@@ -535,18 +541,28 @@ export default function AdminPage() {
               key={id}
               variant={activeTab === id ? "default" : "ghost"}
               onClick={() => setActiveTab(id)}
-              className="flex-1"
+              className="flex-1 min-w-0 sm:min-w-[120px]"
             >
-              <Icon className="w-4 h-4 mr-2" />
-              {label}
+              <Icon className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">{label}</span>
+              <span className="xs:hidden">{label.charAt(0)}</span>
             </Button>
           ))}
         </div>
 
         {/* Content Area */}
         <div className="space-y-6">
+          {isLoadingData && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-2 text-sm text-muted-foreground">Loading data...</p>
+              </div>
+            </div>
+          )}
+          
           {/* Sermons Tab */}
-          {activeTab === 'sermons' && (
+          {activeTab === 'sermons' && !isLoadingData && (
             <div className="space-y-6">
               {/* Add/Edit Sermon Form */}
               <Card>
@@ -557,7 +573,7 @@ export default function AdminPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="sermon-title">Title</Label>
                       <Input
@@ -627,7 +643,7 @@ export default function AdminPage() {
                     />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="sermon-audio">Audio URL</Label>
                       <Input
@@ -694,22 +710,22 @@ export default function AdminPage() {
                   <div className="space-y-4">
                     {sermons.map((sermon) => (
                       <div key={sermon.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-lg">{sermon.title}</h3>
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg break-words">{sermon.title}</h3>
                             <p className="text-muted-foreground">by {sermon.speaker}</p>
-                            <p className="text-sm text-muted-foreground mt-1">{sermon.description}</p>
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+                            <p className="text-sm text-muted-foreground mt-1 break-words">{sermon.description}</p>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-sm text-muted-foreground">
                               <span>{new Date(sermon.date).toLocaleDateString()}</span>
                               <span>{sermon.category}</span>
                               {sermon.duration && <span>{sermon.duration}</span>}
                             </div>
                           </div>
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline" onClick={() => startEditSermon(sermon)}>
+                          <div className="flex space-x-2 w-full sm:w-auto">
+                            <Button size="sm" variant="outline" onClick={() => startEditSermon(sermon)} className="flex-1 sm:flex-none">
                               <Edit className="w-4 h-4" />
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleDeleteSermon(sermon.id)}>
+                            <Button size="sm" variant="outline" onClick={() => handleDeleteSermon(sermon.id)} className="flex-1 sm:flex-none">
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -726,7 +742,7 @@ export default function AdminPage() {
           )}
 
           {/* Events Tab */}
-          {activeTab === 'events' && (
+          {activeTab === 'events' && !isLoadingData && (
             <div className="space-y-6">
               {/* Add/Edit Event Form */}
               <Card>
@@ -841,7 +857,7 @@ export default function AdminPage() {
           )}
 
           {/* Gallery Tab */}
-          {activeTab === 'gallery' && (
+          {activeTab === 'gallery' && !isLoadingData && (
             <div className="space-y-6">
               {/* Upload Section */}
               <Card>
@@ -914,7 +930,7 @@ export default function AdminPage() {
           )}
 
           {/* Messages Tab */}
-          {activeTab === 'messages' && (
+          {activeTab === 'messages' && !isLoadingData && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -950,7 +966,7 @@ export default function AdminPage() {
           )}
 
           {/* Settings Tab */}
-          {activeTab === 'settings' && (
+          {activeTab === 'settings' && !isLoadingData && (
             <div className="space-y-6">
               {/* Basic Church Information */}
               <Card>

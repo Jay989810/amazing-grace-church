@@ -13,7 +13,12 @@ export async function GET() {
       .toArray() as EventDocument[]
 
     const apiEvents = events.map(eventDocumentToApi)
-    return NextResponse.json(apiEvents)
+    
+    // Add caching headers for better performance
+    const response = NextResponse.json(apiEvents)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+    
+    return response
   } catch (error) {
     console.error('Error fetching events:', error)
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 })
