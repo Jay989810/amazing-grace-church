@@ -11,7 +11,8 @@
     "init-db-standalone": "tsx scripts/init-db-standalone.ts",
     "test-mongodb": "tsx scripts/test-mongodb.ts",
     "test-mongodb-simple": "tsx scripts/test-mongodb-simple.ts",
-    "test-auth": "tsx scripts/test-auth-setup.ts"
+    "test-auth": "tsx scripts/test-auth-setup.ts",
+    "create-admin": "tsx scripts/create-admin-user.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

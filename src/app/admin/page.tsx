@@ -496,7 +496,9 @@ export default function AdminPage() {
               <p className="text-sm text-muted-foreground">
                 <strong>Default Credentials:</strong><br />
                 Email: admin@amazinggracechurch.org<br />
-                Password: [Hidden for security]
+                Password: admin123<br />
+                <br />
+                <em>Note: Run "npm run create-admin" to set up admin user in database</em>
               </p>
             </div>
           </CardContent>

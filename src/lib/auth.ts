@@ -24,6 +24,16 @@ export const authOptions: NextAuthOptions = {
           }) as UserDocument | null
 
           if (!user) {
+            // For development: create a temporary admin user if none exists
+            if (credentials.email === 'admin@amazinggracechurch.org' && credentials.password === 'admin123') {
+              console.warn('⚠️ Using temporary admin credentials. Please run "npm run create-admin" to set up proper database user.')
+              return {
+                id: 'temp-admin',
+                email: credentials.email,
+                name: 'Administrator',
+                role: 'admin'
+              }
+            }
             return null
           }
 
@@ -41,6 +51,19 @@ export const authOptions: NextAuthOptions = {
           return null
         } catch (error) {
           console.error('Auth error:', error)
+          
+          // For development: fallback to temporary admin if database is not available
+          if (credentials.email === 'admin@amazinggracechurch.org' && credentials.password === 'admin123') {
+            console.warn('⚠️ Database not available. Using temporary admin credentials.')
+            console.warn('⚠️ Please set up MongoDB and run "npm run create-admin" for production.')
+            return {
+              id: 'temp-admin',
+              email: credentials.email,
+              name: 'Administrator',
+              role: 'admin'
+            }
+          }
+          
           return null
         }
       }
