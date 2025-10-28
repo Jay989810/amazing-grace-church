@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, MapPin, Users, Filter, Search, Mail } from "lucide-react"
@@ -8,103 +8,49 @@ import { formatDate, formatTime } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
 
+interface Event {
+  id: string
+  title: string
+  description: string
+  date: string
+  location: string
+}
+
 export default function EventsPage() {
   const { toast } = useToast()
   const [selectedType, setSelectedType] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
+  const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Sample events data - in a real app, this would come from your backend/database
-  const events = [
-    {
-      id: "1",
-      title: "Youth Conference 2024",
-      description: "Annual youth conference focusing on spiritual growth and community building. Join us for worship, workshops, and fellowship.",
-      date: "2024-02-15",
-      time: "09:00",
-      venue: "Church Auditorium",
-      type: "Conference",
-      image: "/api/placeholder/400/225",
-      registrationRequired: true,
-      registrationUrl: "#",
-      maxAttendees: 200,
-      currentAttendees: 150
-    },
-    {
-      id: "2",
-      title: "Community Outreach",
-      description: "Join us as we serve our community and share the love of Christ through various outreach activities.",
-      date: "2024-02-20",
-      time: "14:00",
-      venue: "Local Community Center",
-      type: "Community Service",
-      image: "/api/placeholder/400/225",
-      registrationRequired: false,
-      maxAttendees: 100,
-      currentAttendees: 75
-    },
-    {
-      id: "3",
-      title: "Prayer Meeting",
-      description: "Weekly prayer meeting for church members and visitors. Come and join us in prayer and fellowship.",
-      date: "2024-02-25",
-      time: "18:00",
-      venue: "Church Prayer Room",
-      type: "Service",
-      image: "/api/placeholder/400/225",
-      registrationRequired: false,
-      maxAttendees: 50,
-      currentAttendees: 30
-    },
-    {
-      id: "4",
-      title: "Marriage Enrichment Workshop",
-      description: "A special workshop for married couples to strengthen their relationship and grow together in faith.",
-      date: "2024-03-02",
-      time: "10:00",
-      venue: "Fellowship Hall",
-      type: "Workshop",
-      image: "/api/placeholder/400/225",
-      registrationRequired: true,
-      registrationUrl: "#",
-      maxAttendees: 30,
-      currentAttendees: 25
-    },
-    {
-      id: "5",
-      title: "Children's Bible Camp",
-      description: "A fun-filled day of Bible stories, games, and activities for children ages 5-12.",
-      date: "2024-03-10",
-      time: "09:00",
-      venue: "Church Grounds",
-      type: "Youth Program",
-      image: "/api/placeholder/400/225",
-      registrationRequired: true,
-      registrationUrl: "#",
-      maxAttendees: 60,
-      currentAttendees: 45
-    },
-    {
-      id: "6",
-      title: "Easter Celebration",
-      description: "Join us for our special Easter service celebrating the resurrection of our Lord and Savior Jesus Christ.",
-      date: "2024-03-31",
-      time: "08:00",
-      venue: "Main Sanctuary",
-      type: "Service",
-      image: "/api/placeholder/400/225",
-      registrationRequired: false,
-      maxAttendees: 500,
-      currentAttendees: 300
+  // Fetch events from API
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events')
+        if (response.ok) {
+          const data = await response.json()
+          setEvents(data)
+        } else {
+          console.error('Failed to fetch events')
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const eventTypes = ["All", "Service", "Conference", "Workshop", "Community Service", "Youth Program"]
+    fetchEvents()
+  }, [])
+
+  const eventTypes = ["All", "Conference", "Community Service", "Prayer Meeting", "Bible Study", "Special Event"]
 
   const filteredEvents = events.filter(event => {
-    const matchesType = selectedType === "All" || event.type === selectedType
+    const matchesType = selectedType === "All" || event.title.toLowerCase().includes(selectedType.toLowerCase())
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.venue.toLowerCase().includes(searchTerm.toLowerCase())
+                         event.location.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesType && matchesSearch
   })
 
@@ -112,6 +58,17 @@ export default function EventsPage() {
   const today = new Date().toISOString().split('T')[0]
   const upcomingEvents = filteredEvents.filter(event => event.date >= today)
   const pastEvents = filteredEvents.filter(event => event.date < today)
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Loading events...</p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubscribeToEvents = () => {
     toast({

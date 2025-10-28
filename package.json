@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "init-db": "tsx scripts/init-db.ts",
+    "init-db-standalone": "tsx scripts/init-db-standalone.ts",
+    "test-mongodb": "tsx scripts/test-mongodb.ts",
+    "test-mongodb-simple": "tsx scripts/test-mongodb-simple.ts",
+    "test-auth": "tsx scripts/test-auth-setup.ts"
   },
   "dependencies": {
     "@next/font": "^14.2.15",
@@ -20,8 +25,10 @@
     "@supabase/supabase-js": "^2.76.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "framer-motion": "^12.23.24",
     "lucide-react": "^0.548.0",
+    "mongodb": "^6.20.0",
     "next": "16.0.0",
     "next-auth": "^4.24.11",
     "next-themes": "^0.4.6",
@@ -37,6 +44,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.0",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }

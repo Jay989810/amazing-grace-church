@@ -50,3 +50,4 @@ openssl rand -base64 32
 ```
 
 Or use any random string like: `my-super-secret-nextauth-key-2024`
+

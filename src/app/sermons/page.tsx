@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Play, Download, Calendar, User, Filter, Search, Mail } from "lucide-react"
@@ -8,94 +8,49 @@ import { formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
 
+interface Sermon {
+  id: string
+  title: string
+  speaker: string
+  date: string
+  category: string
+  description: string
+  audio_url: string
+  video_url: string
+  notes_url: string
+  duration: string
+  thumbnail: string
+}
+
 export default function SermonsPage() {
   const { toast } = useToast()
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
+  const [sermons, setSermons] = useState<Sermon[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Sample sermon data - in a real app, this would come from your backend/database
-  const sermons = [
-    {
-      id: "1",
-      title: "Walking in Faith and Grace",
-      speaker: "Pastor John Doe",
-      date: "2024-01-21",
-      category: "Sunday Service",
-      description: "Join us as we explore the journey of faith and the amazing grace that sustains us through life's challenges.",
-      audioUrl: "#",
-      videoUrl: "#",
-      notesUrl: "#",
-      duration: "45:30",
-      thumbnail: "/api/placeholder/400/225"
-    },
-    {
-      id: "2",
-      title: "The Power of Prayer",
-      speaker: "Elder Mary Johnson",
-      date: "2024-01-17",
-      category: "Mid-week",
-      description: "Discover the transformative power of prayer in our daily lives and how it strengthens our relationship with God.",
-      audioUrl: "#",
-      videoUrl: "#",
-      notesUrl: "#",
-      duration: "38:15",
-      thumbnail: "/api/placeholder/400/225"
-    },
-    {
-      id: "3",
-      title: "Understanding God's Love",
-      speaker: "Pastor John Doe",
-      date: "2024-01-14",
-      category: "Sunday Service",
-      description: "A deep dive into the unconditional love of God and how it transforms our understanding of grace.",
-      audioUrl: "#",
-      videoUrl: "#",
-      notesUrl: "#",
-      duration: "42:20",
-      thumbnail: "/api/placeholder/400/225"
-    },
-    {
-      id: "4",
-      title: "Building Strong Relationships",
-      speaker: "Deacon James Wilson",
-      date: "2024-01-12",
-      category: "Bible Study",
-      description: "Biblical principles for building and maintaining healthy relationships in our families and communities.",
-      audioUrl: "#",
-      videoUrl: "#",
-      notesUrl: "#",
-      duration: "35:45",
-      thumbnail: "/api/placeholder/400/225"
-    },
-    {
-      id: "5",
-      title: "Hope in Difficult Times",
-      speaker: "Pastor John Doe",
-      date: "2024-01-07",
-      category: "Sunday Service",
-      description: "Finding hope and strength in God's promises during life's most challenging moments.",
-      audioUrl: "#",
-      videoUrl: "#",
-      notesUrl: "#",
-      duration: "48:10",
-      thumbnail: "/api/placeholder/400/225"
-    },
-    {
-      id: "6",
-      title: "The Fruit of the Spirit",
-      speaker: "Elder Mary Johnson",
-      date: "2024-01-03",
-      category: "Mid-week",
-      description: "Exploring the nine fruits of the Spirit and how they manifest in our daily Christian walk.",
-      audioUrl: "#",
-      videoUrl: "#",
-      notesUrl: "#",
-      duration: "40:25",
-      thumbnail: "/api/placeholder/400/225"
+  // Fetch sermons from API
+  useEffect(() => {
+    const fetchSermons = async () => {
+      try {
+        const response = await fetch('/api/sermons')
+        if (response.ok) {
+          const data = await response.json()
+          setSermons(data)
+        } else {
+          console.error('Failed to fetch sermons')
+        }
+      } catch (error) {
+        console.error('Error fetching sermons:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
 
-  const categories = ["All", "Sunday Service", "Mid-week", "Bible Study"]
+    fetchSermons()
+  }, [])
+
+  const categories = ["All", "Sunday Service", "Mid-week", "Bible Study", "Prayer Meeting", "Special Event"]
 
   const handleWatchSermon = (sermonTitle: string) => {
     toast({
@@ -127,6 +82,17 @@ export default function SermonsPage() {
                          sermon.description.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesSearch
   })
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-lg">Loading sermons...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen">

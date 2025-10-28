@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
+import { getCollection } from '@/lib/mongodb'
+import { ContactMessageDocument, contactMessageDocumentToApi } from '@/lib/models'
 
 export async function GET() {
   try {
-    const { data: messages, error } = await supabase
-      .from('contact_messages')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const messagesCollection = await getCollection('contact_messages')
+    const messages = await messagesCollection
+      .find({})
+      .sort({ created_at: -1 })
+      .toArray() as ContactMessageDocument[]
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(messages)
+    const apiMessages = messages.map(contactMessageDocumentToApi)
+    return NextResponse.json(apiMessages)
   } catch (error) {
+    console.error('Error fetching messages:', error)
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
   }
 }
@@ -25,29 +25,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, email, phone, subject, message } = body
 
-    const { data, error } = await supabase
-      .from('contact_messages')
-      .insert([
-        {
-          name,
-          email,
-          phone,
-          subject,
-          message,
-          date: new Date().toISOString(),
-          status: 'new',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ])
-      .select()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const messagesCollection = await getCollection('contact_messages')
+    const now = new Date().toISOString()
+    
+    const messageDoc: ContactMessageDocument = {
+      name,
+      email,
+      phone,
+      subject,
+      message,
+      date: now,
+      status: 'new',
+      created_at: now,
+      updated_at: now
     }
 
-    return NextResponse.json(data[0], { status: 201 })
+    const result = await messagesCollection.insertOne(messageDoc)
+    const insertedMessage = await messagesCollection.findOne({ _id: result.insertedId }) as ContactMessageDocument
+
+    return NextResponse.json(contactMessageDocumentToApi(insertedMessage), { status: 201 })
   } catch (error) {
+    console.error('Error creating message:', error)
     return NextResponse.json({ error: 'Failed to create message' }, { status: 500 })
   }
 }
@@ -63,21 +61,27 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, status } = body
 
-    const { data, error } = await supabase
-      .from('contact_messages')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
+    const messagesCollection = await getCollection('contact_messages')
+    const { ObjectId } = await import('mongodb')
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const result = await messagesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { 
+        $set: { 
+          status,
+          updated_at: new Date().toISOString()
+        }
+      }
+    )
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
-    return NextResponse.json(data[0])
+    const updatedMessage = await messagesCollection.findOne({ _id: new ObjectId(id) }) as ContactMessageDocument
+    return NextResponse.json(contactMessageDocumentToApi(updatedMessage))
   } catch (error) {
+    console.error('Error updating message:', error)
     return NextResponse.json({ error: 'Failed to update message' }, { status: 500 })
   }
 }
@@ -97,17 +101,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Message ID is required' }, { status: 400 })
     }
 
-    const { error } = await supabase
-      .from('contact_messages')
-      .delete()
-      .eq('id', id)
+    const messagesCollection = await getCollection('contact_messages')
+    const { ObjectId } = await import('mongodb')
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const result = await messagesCollection.deleteOne({ _id: new ObjectId(id) })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Message not found' }, { status: 404 })
     }
 
     return NextResponse.json({ message: 'Message deleted successfully' })
   } catch (error) {
+    console.error('Error deleting message:', error)
     return NextResponse.json({ error: 'Failed to delete message' }, { status: 500 })
   }
 }

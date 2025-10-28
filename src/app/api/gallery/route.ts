@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
+import { getCollection } from '@/lib/mongodb'
+import { GalleryImageDocument, galleryImageDocumentToApi } from '@/lib/models'
 
 export async function GET() {
   try {
-    const { data: images, error } = await supabase
-      .from('gallery_images')
-      .select('*')
-      .order('created_at', { ascending: false })
+    const galleryCollection = await getCollection('gallery_images')
+    const images = await galleryCollection
+      .find({})
+      .sort({ created_at: -1 })
+      .toArray() as GalleryImageDocument[]
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(images)
+    const apiImages = images.map(galleryImageDocumentToApi)
+    return NextResponse.json(apiImages)
   } catch (error) {
+    console.error('Error fetching gallery images:', error)
     return NextResponse.json({ error: 'Failed to fetch gallery images' }, { status: 500 })
   }
 }
@@ -29,30 +29,28 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, description, image_url, album, photographer } = body
+    const { title, description, imageUrl, album, photographer } = body
 
-    const { data, error } = await supabase
-      .from('gallery_images')
-      .insert([
-        {
-          title,
-          description,
-          image_url,
-          album,
-          photographer,
-          date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ])
-      .select()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const galleryCollection = await getCollection('gallery_images')
+    const now = new Date().toISOString()
+    
+    const imageDoc: GalleryImageDocument = {
+      title,
+      description,
+      image_url: imageUrl,
+      album,
+      photographer,
+      date: now,
+      created_at: now,
+      updated_at: now
     }
 
-    return NextResponse.json(data[0], { status: 201 })
+    const result = await galleryCollection.insertOne(imageDoc)
+    const insertedImage = await galleryCollection.findOne({ _id: result.insertedId }) as GalleryImageDocument
+
+    return NextResponse.json(galleryImageDocumentToApi(insertedImage), { status: 201 })
   } catch (error) {
+    console.error('Error creating gallery image:', error)
     return NextResponse.json({ error: 'Failed to create gallery image' }, { status: 500 })
   }
 }
@@ -68,21 +66,27 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, ...updateData } = body
 
-    const { data, error } = await supabase
-      .from('gallery_images')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const galleryCollection = await getCollection('gallery_images')
+    const { ObjectId } = await import('mongodb')
+    
+    const updateDoc = {
+      ...updateData,
+      updated_at: new Date().toISOString()
     }
 
-    return NextResponse.json(data[0])
+    const result = await galleryCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateDoc }
+    )
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: 'Gallery image not found' }, { status: 404 })
+    }
+
+    const updatedImage = await galleryCollection.findOne({ _id: new ObjectId(id) }) as GalleryImageDocument
+    return NextResponse.json(galleryImageDocumentToApi(updatedImage))
   } catch (error) {
+    console.error('Error updating gallery image:', error)
     return NextResponse.json({ error: 'Failed to update gallery image' }, { status: 500 })
   }
 }
@@ -102,17 +106,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Image ID is required' }, { status: 400 })
     }
 
-    const { error } = await supabase
-      .from('gallery_images')
-      .delete()
-      .eq('id', id)
+    const galleryCollection = await getCollection('gallery_images')
+    const { ObjectId } = await import('mongodb')
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const result = await galleryCollection.deleteOne({ _id: new ObjectId(id) })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Gallery image not found' }, { status: 404 })
     }
 
     return NextResponse.json({ message: 'Gallery image deleted successfully' })
   } catch (error) {
+    console.error('Error deleting gallery image:', error)
     return NextResponse.json({ error: 'Failed to delete gallery image' }, { status: 500 })
   }
 }

@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { supabase } from '@/lib/supabase'
+import { getCollection } from '@/lib/mongodb'
+import { SermonDocument, sermonDocumentToApi } from '@/lib/models'
 
 export async function GET() {
   try {
-    const { data: sermons, error } = await supabase
-      .from('sermons')
-      .select('*')
-      .order('date', { ascending: false })
+    const sermonsCollection = await getCollection('sermons')
+    const sermons = await sermonsCollection
+      .find({})
+      .sort({ date: -1 })
+      .toArray() as SermonDocument[]
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(sermons)
+    const apiSermons = sermons.map(sermonDocumentToApi)
+    return NextResponse.json(apiSermons)
   } catch (error) {
+    console.error('Error fetching sermons:', error)
     return NextResponse.json({ error: 'Failed to fetch sermons' }, { status: 500 })
   }
 }
@@ -29,34 +29,32 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { title, speaker, date, category, description, audio_url, video_url, notes_url, thumbnail, duration } = body
+    const { title, speaker, date, category, description, audioUrl, videoUrl, notesUrl, thumbnail, duration } = body
 
-    const { data, error } = await supabase
-      .from('sermons')
-      .insert([
-        {
-          title,
-          speaker,
-          date,
-          category,
-          description,
-          audio_url,
-          video_url,
-          notes_url,
-          thumbnail,
-          duration,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-      ])
-      .select()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const sermonsCollection = await getCollection('sermons')
+    const now = new Date().toISOString()
+    
+    const sermonDoc: SermonDocument = {
+      title,
+      speaker,
+      date,
+      category,
+      description,
+      audio_url: audioUrl,
+      video_url: videoUrl,
+      notes_url: notesUrl,
+      thumbnail,
+      duration,
+      created_at: now,
+      updated_at: now
     }
 
-    return NextResponse.json(data[0], { status: 201 })
+    const result = await sermonsCollection.insertOne(sermonDoc)
+    const insertedSermon = await sermonsCollection.findOne({ _id: result.insertedId }) as SermonDocument
+
+    return NextResponse.json(sermonDocumentToApi(insertedSermon), { status: 201 })
   } catch (error) {
+    console.error('Error creating sermon:', error)
     return NextResponse.json({ error: 'Failed to create sermon' }, { status: 500 })
   }
 }
@@ -72,21 +70,27 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { id, ...updateData } = body
 
-    const { data, error } = await supabase
-      .from('sermons')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const sermonsCollection = await getCollection('sermons')
+    const { ObjectId } = await import('mongodb')
+    
+    const updateDoc = {
+      ...updateData,
+      updated_at: new Date().toISOString()
     }
 
-    return NextResponse.json(data[0])
+    const result = await sermonsCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateDoc }
+    )
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({ error: 'Sermon not found' }, { status: 404 })
+    }
+
+    const updatedSermon = await sermonsCollection.findOne({ _id: new ObjectId(id) }) as SermonDocument
+    return NextResponse.json(sermonDocumentToApi(updatedSermon))
   } catch (error) {
+    console.error('Error updating sermon:', error)
     return NextResponse.json({ error: 'Failed to update sermon' }, { status: 500 })
   }
 }
@@ -106,17 +110,18 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Sermon ID is required' }, { status: 400 })
     }
 
-    const { error } = await supabase
-      .from('sermons')
-      .delete()
-      .eq('id', id)
+    const sermonsCollection = await getCollection('sermons')
+    const { ObjectId } = await import('mongodb')
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    const result = await sermonsCollection.deleteOne({ _id: new ObjectId(id) })
+
+    if (result.deletedCount === 0) {
+      return NextResponse.json({ error: 'Sermon not found' }, { status: 404 })
     }
 
     return NextResponse.json({ message: 'Sermon deleted successfully' })
   } catch (error) {
+    console.error('Error deleting sermon:', error)
     return NextResponse.json({ error: 'Failed to delete sermon' }, { status: 500 })
   }
 }
