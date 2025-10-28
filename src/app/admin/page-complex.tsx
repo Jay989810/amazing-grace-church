@@ -103,7 +103,7 @@ export default function AdminDashboard() {
 
   // Real-time subscriptions
   useEffect(() => {
-    if (session) {
+    if (session && supabase) {
       // Subscribe to real-time updates for messages
       const messagesSubscription = supabase
         .channel('contact_messages')
