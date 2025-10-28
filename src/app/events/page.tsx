@@ -14,6 +14,8 @@ interface Event {
   description: string
   date: string
   location: string
+  type: string
+  image?: string
 }
 
 export default function EventsPage() {
