@@ -144,7 +144,7 @@ async function initializeDatabase() {
     console.log('3. Login with: admin@amazinggracechurch.org / grace1234')
     
   } catch (error) {
-    console.error('❌ Database initialization failed:', error.message)
+    console.error('❌ Database initialization failed:', error instanceof Error ? error.message : String(error))
     process.exit(1)
   }
 }
