@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { Upload, Users, MessageSquare, Calendar, Image, FileText, Settings, LogOut, Plus, Edit, Trash2, Eye, Bell, Save, X } from "lucide-react"
-import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 
 interface Sermon {
@@ -100,55 +99,6 @@ export default function AdminDashboard() {
     registration_required: false,
     registration_url: ''
   })
-
-  // Real-time subscriptions
-  useEffect(() => {
-    if (session && supabase) {
-      // Subscribe to real-time updates for messages
-      const messagesSubscription = supabase
-        .channel('contact_messages')
-        .on('postgres_changes', 
-          { event: 'INSERT', schema: 'public', table: 'contact_messages' },
-          (payload) => {
-            setMessages(prev => [payload.new as ContactMessage, ...prev])
-            setNewMessageCount(prev => prev + 1)
-            toast({
-              title: "New Message Received",
-              description: `New message from ${payload.new.name}`,
-            })
-          }
-        )
-        .subscribe()
-
-      // Subscribe to sermon updates
-      const sermonsSubscription = supabase
-        .channel('sermons')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'sermons' },
-          () => {
-            fetchSermons()
-          }
-        )
-        .subscribe()
-
-      // Subscribe to event updates
-      const eventsSubscription = supabase
-        .channel('events')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'events' },
-          () => {
-            fetchEvents()
-          }
-        )
-        .subscribe()
-
-      return () => {
-        messagesSubscription.unsubscribe()
-        sermonsSubscription.unsubscribe()
-        eventsSubscription.unsubscribe()
-      }
-    }
-  }, [session, toast])
 
   // Fetch data functions
   const fetchSermons = async () => {
