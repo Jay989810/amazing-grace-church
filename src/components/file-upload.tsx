@@ -72,114 +72,78 @@ export function FileUpload({
     setUploading(true)
     
     try {
-      const vercelLimit = 4.5 * 1024 * 1024 // 4.5MB Vercel limit
-      const usePresignedUrl = file.size > vercelLimit
-
-      if (usePresignedUrl) {
-        // Use presigned URL for large files (direct upload to S3)
-        // Step 1: Get presigned URL
-        const presignedResponse = await fetch('/api/upload/presigned', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileName: file.name,
-            fileType: file.type,
-            fileSize: file.size,
-            type,
-            metadata
-          })
+      // Always use presigned URLs for direct S3 upload (bypasses Vercel 4.5MB limit)
+      // Step 1: Get presigned URL
+      const presignedResponse = await fetch('/api/upload/presigned', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          type,
+          metadata
         })
+      })
 
-        if (!presignedResponse.ok) {
-          const errorData = await presignedResponse.json()
-          throw new Error(errorData.error || 'Failed to get upload URL')
-        }
+      if (!presignedResponse.ok) {
+        const errorData = await presignedResponse.json()
+        throw new Error(errorData.error || 'Failed to get upload URL')
+      }
 
-        const presignedData = await presignedResponse.json()
-        
-        // Step 2: Upload directly to S3 using presigned URL
-        const uploadResponse = await fetch(presignedData.presignedUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': file.type,
-          },
-          body: file
+      const presignedData = await presignedResponse.json()
+      
+      // Step 2: Upload directly to S3 using presigned URL
+      const uploadResponse = await fetch(presignedData.presignedUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+        },
+        body: file
+      })
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text()
+        console.error('S3 upload error:', errorText)
+        throw new Error(`Failed to upload file to S3: ${uploadResponse.status} ${uploadResponse.statusText}`)
+      }
+
+      // Step 3: Confirm upload completion
+      const confirmResponse = await fetch('/api/upload/presigned', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId: presignedData.fileId,
+          type,
+          metadata
         })
+      })
 
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file to S3')
-        }
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json()
+        throw new Error(errorData.error || 'Failed to confirm upload')
+      }
 
-        // Step 3: Confirm upload completion
-        const confirmResponse = await fetch('/api/upload/presigned', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileId: presignedData.fileId,
-            type,
-            metadata
-          })
-        })
-
-        if (!confirmResponse.ok) {
-          throw new Error('Failed to confirm upload')
-        }
-
-        const confirmData = await confirmResponse.json()
-        const uploadedFile = confirmData.file
-        
-        setUploadedFiles(prev => [uploadedFile, ...prev])
-        
-        toast({
-          title: "Upload Successful",
-          description: `${file.name} uploaded successfully (large file)`
-        })
-        
-        if (onUploadComplete) {
-          onUploadComplete(uploadedFile)
-        }
-      } else {
-        // Use direct upload for small files
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('type', type)
-        if (Object.keys(metadata).length > 0) {
-          formData.append('metadata', JSON.stringify(metadata))
-        }
-        
-        const response = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData
-        })
-        
-        if (response.ok) {
-          const result = await response.json()
-          const uploadedFile = result.file
-          
-          setUploadedFiles(prev => [uploadedFile, ...prev])
-          
-          toast({
-            title: "Upload Successful",
-            description: `${file.name} uploaded successfully`
-          })
-          
-          if (onUploadComplete) {
-            onUploadComplete(uploadedFile)
-          }
-        } else {
-          const errorData = await response.json()
-          const errorMessage = errorData.message || errorData.error || 'Upload failed'
-          const errorDetails = errorData.details ? ` (${errorData.details})` : ''
-          const missingVars = errorData.missingVariables ? `\nMissing: ${errorData.missingVariables.join(', ')}` : ''
-          throw new Error(`${errorMessage}${errorDetails}${missingVars}`)
-        }
+      const confirmData = await confirmResponse.json()
+      const uploadedFile = confirmData.file
+      
+      setUploadedFiles(prev => [uploadedFile, ...prev])
+      
+      toast({
+        title: "Upload Successful",
+        description: `${file.name} uploaded successfully`
+      })
+      
+      if (onUploadComplete) {
+        onUploadComplete(uploadedFile)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      console.error('Upload error:', error)
       toast({
         title: "Upload Error",
         description: errorMessage,
@@ -275,7 +239,7 @@ export function FileUpload({
               <p className="text-xs text-muted-foreground mt-1">
                 Max size: {maxSize}MB {type === 'gallery' ? '(Images only)' : type === 'sermon' ? '(Audio/Video only)' : ''}
                 <br />
-                <span className="text-xs">Large files ({'>'}4.5MB) will upload directly to S3</span>
+                <span className="text-xs">All files upload directly to S3</span>
               </p>
             </div>
             
