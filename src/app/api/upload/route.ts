@@ -94,7 +94,8 @@ export async function POST(request: NextRequest) {
       Key: key,
       Body: buffer,
       ContentType: file.type,
-      ACL: 'public-read', // Make file publicly accessible
+      // ACL removed - bucket policy should handle public access
+      // If bucket has ACLs disabled (recommended), use bucket policy instead
     })
 
     await s3Client.send(command)
@@ -150,6 +151,8 @@ export async function POST(request: NextRequest) {
         errorMessage = 'Invalid AWS access key. Check credentials.'
       } else if (error.message.includes('SignatureDoesNotMatch')) {
         errorMessage = 'Invalid AWS secret key. Check credentials.'
+      } else if (error.message.includes('ACL') || error.message.includes('Access Control List')) {
+        errorMessage = 'Bucket ACLs are disabled. Ensure bucket policy allows public read access.'
       }
     }
     

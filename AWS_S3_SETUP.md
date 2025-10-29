@@ -10,7 +10,10 @@
 2. Click "Create bucket"
 3. Choose a unique bucket name (e.g., `amazing-grace-church-files`)
 4. Select region (e.g., `us-east-1`)
-5. **Important**: Uncheck "Block all public access" and acknowledge
+5. **Important**: 
+   - Uncheck "Block all public access" and acknowledge
+   - **ACLs disabled (recommended)**: Leave "Block all public access" settings as default (which blocks ACLs)
+   - We'll use bucket policy instead of ACLs for better security
 6. Click "Create bucket"
 
 ## Step 3: Configure Bucket Permissions
