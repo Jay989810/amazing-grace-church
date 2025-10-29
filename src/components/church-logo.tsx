@@ -76,7 +76,7 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
       <Image
-        src={settings.heroImage || "/church-logo.png"}
+        src="/church-logo.png"
         alt={`${settings.churchName || "Amazing Grace Baptist Church"} Logo`}
         width={160}
         height={160}
