@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Upload, X, File, Image, Music, Video, CheckCircle, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { put } from '@vercel/blob'
 
 interface FileUploadProps {
   type: 'sermon' | 'gallery' | 'settings'
@@ -72,38 +73,63 @@ export function FileUpload({
     setUploading(true)
     
     try {
-      // Use Vercel Blob for simpler uploads - no CORS issues
-      console.log('Starting upload to Vercel Blob:', { fileName: file.name, fileSize: file.size })
+      // Upload directly from client to Vercel Blob (bypasses serverless body limit)
+      console.log('Starting client-side upload to Vercel Blob:', { fileName: file.name, fileSize: file.size })
       
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('type', type)
-      formData.append('metadata', JSON.stringify(metadata))
-
-      const blobResponse = await fetch('/api/upload/blob', {
+      // Get upload token from server
+      const tokenResponse = await fetch('/api/upload/blob/token', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, metadata })
       })
 
-      if (!blobResponse.ok) {
-        const errorData = await blobResponse.json()
-        console.error('Failed to upload to Blob:', errorData)
-        throw new Error(errorData.error || 'Failed to upload file')
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get upload token')
       }
 
-      const blobData = await blobResponse.json()
-      console.log('Upload to Blob successful!')
+      const { token } = await tokenResponse.json()
+
+      // Upload directly to Vercel Blob from client
+      const timestamp = Date.now()
+      const filename = `${timestamp}_${file.name}`
+      const blobPath = `amazing-grace-church/${type}/${filename}`
+
+      const blob = await put(blobPath, file, {
+        access: 'public',
+        addRandomSuffix: false,
+        token
+      })
+
+      console.log('Upload to Blob successful! URL:', blob.url)
+
+      // Save file metadata to database via API
+      const saveResponse = await fetch('/api/upload/blob/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalName: file.name,
+          filename: filename,
+          type: type,
+          size: file.size,
+          mimeType: file.type,
+          url: blob.url,
+          blobPath: blob.pathname,
+          metadata: metadata
+        })
+      })
+
+      const saveData = await saveResponse.json()
 
       const uploadedFile = {
-        id: blobData.file.id,
-        originalName: blobData.file.originalName,
-        filename: blobData.file.filename,
-        type: blobData.file.type,
-        size: blobData.file.size,
-        mimeType: blobData.file.mimeType,
-        url: blobData.file.url,
-        uploadedAt: blobData.file.uploadedAt,
-        metadata: blobData.file.metadata
+        id: saveData.fileId,
+        originalName: file.name,
+        filename: filename,
+        type: type,
+        size: file.size,
+        mimeType: file.type,
+        url: blob.url,
+        uploadedAt: new Date().toISOString(),
+        metadata: metadata
       }
 
       console.log('Upload complete:', {
