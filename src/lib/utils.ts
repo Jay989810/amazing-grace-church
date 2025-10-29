@@ -28,7 +28,9 @@ export function formatDate(date: Date | string): string {
  * @param time - Time string in HH:MM format
  * @returns Formatted time string
  */
-export function formatTime(time: string): string {
+export function formatTime(time: string | undefined | null): string {
+  if (!time) return 'TBD'
+  
   const [hours, minutes] = time.split(':')
   const hour = parseInt(hours)
   const ampm = hour >= 12 ? 'PM' : 'AM'

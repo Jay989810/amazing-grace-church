@@ -13,7 +13,7 @@ interface Event {
   title: string
   description: string
   date: string
-  time: string
+  time?: string
   venue: string
   type: string
   image?: string
