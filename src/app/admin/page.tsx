@@ -676,11 +676,11 @@ export default function AdminPage() {
         })
         return
       }
-      setLeaderForm({ ...leaderForm, image: file.url })
-      toast({
-        title: "Photo Uploaded",
-        description: "Photo URL has been set"
-      })
+    setLeaderForm({ ...leaderForm, image: file.url })
+    toast({
+      title: "Photo Uploaded",
+      description: "Photo URL has been set"
+    })
     } catch (error) {
       console.error('Error in handleLeaderPhotoUpload:', error)
       toast({
@@ -1009,7 +1009,7 @@ export default function AdminPage() {
                           }
                           
                           // Only add URLs for matching file types
-                          if (file.mimeType.startsWith('audio/')) {
+                        if (file.mimeType.startsWith('audio/')) {
                             sermonData.audio_url = file.url
                           }
                           if (file.mimeType.startsWith('video/')) {
@@ -1019,13 +1019,20 @@ export default function AdminPage() {
                             sermonData.thumbnail = file.url
                           }
                           
-                          console.log('Creating sermon with data:', sermonData)
+                          console.log('Creating sermon with data:', JSON.stringify(sermonData, null, 2))
                           
                           const response = await fetch('/api/sermons', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(sermonData)
                           })
+                          
+                          console.log('Sermon creation response status:', response.status)
+                          
+                          if (!response.ok) {
+                            const errorText = await response.text()
+                            console.error('Sermon creation failed:', errorText)
+                          }
                           
                           if (response.ok) {
                             const newSermon = await response.json()
@@ -1320,9 +1327,9 @@ export default function AdminPage() {
                           })
                           return
                         }
-                        handleFileUploadComplete(file)
-                        // Refresh gallery images after upload
-                        loadAllData()
+                      handleFileUploadComplete(file)
+                      // Refresh gallery images after upload
+                      loadAllData()
                       } catch (error) {
                         console.error('Error processing gallery upload completion:', error)
                         toast({
@@ -2145,7 +2152,7 @@ export default function AdminPage() {
                           })
                           return
                         }
-                        setSettingsForm({...settingsForm, heroImage: file.url})
+                      setSettingsForm({...settingsForm, heroImage: file.url})
                         toast({
                           title: "Hero Image Set",
                           description: "Hero image URL has been automatically set"
