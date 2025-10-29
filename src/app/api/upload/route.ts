@@ -27,86 +27,128 @@ function getS3Client() {
 
 export async function POST(request: NextRequest) {
   try {
-    // IMPORTANT: This endpoint should NOT be used for file uploads anymore
-    // All file uploads should use /api/upload/presigned for direct S3 uploads
-    // This prevents Vercel's 4.5MB body size limit
-    
-    // Check environment variables first
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
-      const missingVars = []
-      if (!process.env.AWS_ACCESS_KEY_ID) missingVars.push('AWS_ACCESS_KEY_ID')
-      if (!process.env.AWS_SECRET_ACCESS_KEY) missingVars.push('AWS_SECRET_ACCESS_KEY')
-      if (!process.env.AWS_S3_BUCKET) missingVars.push('AWS_S3_BUCKET')
-      
-      console.error('Missing AWS environment variables:', {
-        missing: missingVars,
-        hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-        hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
-        hasBucket: !!process.env.AWS_S3_BUCKET,
-        region: process.env.AWS_REGION || 'not set'
-      })
-      
-      return NextResponse.json({ 
-        error: 'AWS configuration missing',
-        message: `Missing required environment variables: ${missingVars.join(', ')}. Please add them to Vercel environment variables.`,
-        missingVariables: missingVars
-      }, { status: 500 })
-    }
-
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user || (session.user as any).role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // DEPRECATED: Direct file uploads are no longer supported
-    // This endpoint is kept for backward compatibility but will reject all uploads
-    // All uploads must use /api/upload/presigned for direct S3 uploads
+    const body = await request.json()
+    
+    // Check if this is a confirmation request (has fileId)
+    if (body.fileId) {
+      // Handle upload confirmation
+      const { fileId, type, metadata } = body
+
+      if (!fileId) {
+        return NextResponse.json({ error: 'File ID is required' }, { status: 400 })
+      }
+
+      const filesCollection = await getCollection('uploaded_files')
+      const { ObjectId } = await import('mongodb')
+
+      // Validate ObjectId format
+      let objectId: any
+      try {
+        objectId = new ObjectId(fileId)
+      } catch (error) {
+        console.error('Invalid fileId format:', fileId)
+        return NextResponse.json({ error: 'Invalid file ID format' }, { status: 400 })
+      }
+
+      // First, find the file to ensure it exists
+      const existingFile = await filesCollection.findOne({ _id: objectId })
+      if (!existingFile) {
+        console.error('File not found in database:', fileId)
+        return NextResponse.json({ error: 'File not found' }, { status: 404 })
+      }
+
+      // Update file status to completed
+      const updateResult = await filesCollection.findOneAndUpdate(
+        { _id: objectId },
+        { 
+          $set: { 
+            status: 'completed',
+            updatedAt: new Date().toISOString()
+          } 
+        },
+        { returnDocument: 'after' }
+      )
+
+      // Check if update was successful and document was found
+      if (!updateResult || !updateResult.value) {
+        console.error('Failed to update file or file not found after update:', fileId)
+        return NextResponse.json({ error: 'Failed to confirm upload - file not found' }, { status: 404 })
+      }
+
+      const updatedFile = updateResult.value
+
+      // Ensure all required fields are present and properly formatted
+      const fileResponse = {
+        id: updatedFile._id.toString(),
+        originalName: updatedFile.originalName || existingFile.originalName || 'unknown',
+        filename: updatedFile.filename || existingFile.filename || 'unknown',
+        type: updatedFile.type || existingFile.type || type || 'sermon',
+        size: updatedFile.size || existingFile.size || 0,
+        mimeType: updatedFile.mimeType || existingFile.mimeType || 'application/octet-stream',
+        url: updatedFile.url || existingFile.url || '',
+        uploadedAt: updatedFile.uploadedAt || existingFile.uploadedAt || new Date().toISOString(),
+        metadata: updatedFile.metadata || existingFile.metadata || {}
+      }
+
+      // Validate required fields
+      if (!fileResponse.mimeType || !fileResponse.url) {
+        console.error('Missing required fields in file response:', fileResponse)
+        return NextResponse.json({ 
+          error: 'Invalid file data - missing required fields',
+          details: 'File record is incomplete'
+        }, { status: 500 })
+      }
+
+      // If this is a gallery image, also create an entry in gallery_images collection
+      if (type === 'gallery') {
+        try {
+          const galleryCollection = await getCollection('gallery_images')
+          const galleryDoc = {
+            title: metadata?.title || fileResponse.originalName,
+            description: metadata?.description || '',
+            image_url: fileResponse.url,
+            album: metadata?.album || metadata?.category || 'Other',
+            photographer: metadata?.photographer || '',
+            date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          await galleryCollection.insertOne(galleryDoc)
+        } catch (galleryError) {
+          // Log error but don't fail the upload confirmation
+          console.error('Error creating gallery entry:', galleryError)
+        }
+      }
+
+      console.log('Upload confirmed successfully:', {
+        fileId: fileResponse.id,
+        fileName: fileResponse.originalName,
+        mimeType: fileResponse.mimeType,
+        url: fileResponse.url
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: 'Upload confirmed',
+        file: fileResponse
+      })
+    }
+
+    // If no fileId, this is a presigned URL request - redirect to presigned route
     return NextResponse.json({ 
-      error: 'Direct file uploads are deprecated',
-      message: 'This endpoint no longer accepts direct file uploads. Please use the presigned URL endpoint for all file uploads.',
-      solution: 'Use POST /api/upload/presigned to get a presigned URL for direct S3 upload',
-      reason: 'Vercel has a 4.5MB body size limit. All files must upload directly to S3 using presigned URLs.'
-    }, { status: 410 }) // 410 Gone - indicates the resource is no longer available
+      error: 'Use /api/upload/presigned for presigned URL generation',
+      message: 'This endpoint handles upload confirmation only. Use /api/upload/presigned for getting presigned URLs.'
+    }, { status: 400 })
 
   } catch (error) {
-    console.error('File upload error:', error)
-    
-    // Provide more detailed error information
-    let errorMessage = 'Upload failed'
-    let errorDetails = 'Unknown error'
-    
-    if (error instanceof Error) {
-      errorDetails = error.message
-      
-      // Check for specific AWS errors
-      if (error.message.includes('AWS credentials')) {
-        errorMessage = 'AWS credentials not configured'
-      } else if (error.message.includes('AccessDenied')) {
-        errorMessage = 'Access denied to S3 bucket. Check IAM permissions.'
-      } else if (error.message.includes('NoSuchBucket')) {
-        errorMessage = 'S3 bucket not found. Check bucket name.'
-      } else if (error.message.includes('InvalidAccessKeyId')) {
-        errorMessage = 'Invalid AWS access key. Check credentials.'
-      } else if (error.message.includes('SignatureDoesNotMatch')) {
-        errorMessage = 'Invalid AWS secret key. Check credentials.'
-      } else if (error.message.includes('ACL') || error.message.includes('Access Control List')) {
-        errorMessage = 'Bucket ACLs are disabled. Ensure bucket policy allows public read access.'
-      }
-    }
-    
-    return NextResponse.json({ 
-      error: errorMessage,
-      details: errorDetails,
-      // Include helpful debugging info (but not sensitive data)
-      debug: process.env.NODE_ENV === 'development' ? {
-        hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-        hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
-        hasBucket: !!process.env.AWS_S3_BUCKET,
-        region: process.env.AWS_REGION,
-        bucketName: process.env.AWS_S3_BUCKET,
-      } : undefined
-    }, { status: 500 })
+    console.error('Upload confirmation error:', error)
+    return NextResponse.json({ error: 'Failed to confirm upload' }, { status: 500 })
   }
 }
 
