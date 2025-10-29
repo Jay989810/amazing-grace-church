@@ -47,7 +47,7 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
   // If image fails to load, show the designed logo as fallback
   if (imageError) {
     return (
-      <div className={`${sizeClasses[size]} ${className}`}>
+      <div className={`${sizeClasses[size]} ${className} rounded-full overflow-hidden flex items-center justify-center`}>
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-4 border-yellow-300 shadow-lg">
           <div className="relative w-3/4 h-3/4">
             {/* Cross */}
@@ -67,23 +67,29 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
 
   if (loading) {
     return (
-      <div className={`${sizeClasses[size]} ${className}`}>
+      <div className={`${sizeClasses[size]} ${className} rounded-full overflow-hidden`}>
         <div className="w-full h-full bg-muted animate-pulse rounded-full"></div>
       </div>
     )
   }
 
   return (
-    <div className={`${sizeClasses[size]} ${className}`}>
-      <Image
-        src="/church-logo.png"
-        alt={`${settings.churchName || "Amazing Grace Baptist Church"} Logo`}
-        width={160}
-        height={160}
-        className="w-full h-full object-contain"
-        priority
-        onError={() => setImageError(true)}
-      />
+    <div className={`${sizeClasses[size]} ${className} rounded-full overflow-hidden flex items-center justify-center relative`}>
+      <div className="w-[95%] h-[95%] rounded-full flex items-center justify-center">
+        <Image
+          src="/church-logo.png"
+          alt={`${settings.churchName || "Amazing Grace Baptist Church"} Logo`}
+          width={160}
+          height={160}
+          className="w-full h-full object-contain rounded-full"
+          priority
+          onError={() => setImageError(true)}
+          style={{
+            objectFit: 'contain',
+            objectPosition: 'center'
+          }}
+        />
+      </div>
     </div>
   )
 }
