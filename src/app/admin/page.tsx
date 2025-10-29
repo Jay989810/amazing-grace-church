@@ -52,8 +52,11 @@ interface Event {
 interface GalleryImage {
   id: string
   title: string
-  description: string
+  description?: string
   image_url: string
+  album?: string
+  photographer?: string
+  date?: string
   created_at: string
   updated_at: string
 }
