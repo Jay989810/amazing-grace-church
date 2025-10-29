@@ -99,9 +99,60 @@ export const authOptions: NextAuthOptions = {
         }
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Prevent infinite redirect loops
+      // If redirecting to admin, ensure it's not nested
+      if (url.includes('callbackUrl')) {
+        // Extract the actual callback URL and prevent nesting
+        try {
+          const urlObj = new URL(url, baseUrl)
+          const callbackUrl = urlObj.searchParams.get('callbackUrl')
+          if (callbackUrl && callbackUrl.includes('callbackUrl')) {
+            // Prevent nested callbackUrls - just redirect to admin
+            return `${baseUrl}/admin`
+          }
+        } catch (e) {
+          // If URL parsing fails, just go to admin
+          return `${baseUrl}/admin`
+        }
+      }
+      
+      // If url is relative, make it absolute
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`
+      }
+      
+      // If url is on same origin, allow it
+      if (url.startsWith(baseUrl)) {
+        return url
+      }
+      
+      // Default to admin page
+      return `${baseUrl}/admin`
     }
   },
   pages: {
     signIn: '/admin'
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    },
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
   }
 }

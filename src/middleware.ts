@@ -1,16 +1,24 @@
 import { withAuth } from 'next-auth/middleware'
+import { NextResponse } from 'next/server'
 
 export default withAuth(
   function middleware(req) {
-    // Additional middleware logic can go here
+    // Allow the request to proceed - the admin page handles auth UI
+    return NextResponse.next()
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Only allow access to admin routes if user has admin role
-        if (req.nextUrl.pathname.startsWith('/admin')) {
-          return token?.role === 'admin'
+        const pathname = req.nextUrl.pathname
+        
+        // Always allow access to /admin - the page component handles showing login or dashboard
+        // This prevents redirect loops since /admin is both the sign-in page and protected route
+        if (pathname === '/admin' || pathname.startsWith('/admin')) {
+          // If user has token but is not admin, still allow access to show error message
+          // The admin page component will handle showing login form vs dashboard
+          return true
         }
+        
         return true
       },
     },
