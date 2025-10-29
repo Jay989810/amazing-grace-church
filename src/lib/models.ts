@@ -67,6 +67,36 @@ export interface UserDocument {
   last_login?: string
 }
 
+export interface AboutPageDocument {
+  _id?: ObjectId
+  type: 'history' | 'mission' | 'vision' | 'values' | 'pastors_message'
+  content: string // HTML or plain text content
+  created_at: string
+  updated_at: string
+}
+
+export interface CoreBeliefDocument {
+  _id?: ObjectId
+  title: string
+  description: string
+  icon: string // Icon name (e.g., 'Heart', 'BookOpen')
+  order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface LeadershipMemberDocument {
+  _id?: ObjectId
+  name: string
+  role: string
+  image: string
+  bio: string
+  email: string
+  order: number
+  created_at: string
+  updated_at: string
+}
+
 // Helper functions to convert between MongoDB documents and API types
 export function sermonDocumentToApi(doc: SermonDocument) {
   return {
@@ -132,5 +162,35 @@ export function userDocumentToApi(doc: UserDocument) {
     role: doc.role,
     createdAt: doc.created_at,
     lastLogin: doc.last_login
+  }
+}
+
+export function aboutPageDocumentToApi(doc: AboutPageDocument) {
+  return {
+    id: doc._id?.toString() || '',
+    type: doc.type,
+    content: doc.content
+  }
+}
+
+export function coreBeliefDocumentToApi(doc: CoreBeliefDocument) {
+  return {
+    id: doc._id?.toString() || '',
+    title: doc.title,
+    description: doc.description,
+    icon: doc.icon,
+    order: doc.order
+  }
+}
+
+export function leadershipMemberDocumentToApi(doc: LeadershipMemberDocument) {
+  return {
+    id: doc._id?.toString() || '',
+    name: doc.name,
+    role: doc.role,
+    image: doc.image,
+    bio: doc.bio,
+    email: doc.email,
+    order: doc.order
   }
 }

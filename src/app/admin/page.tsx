@@ -8,9 +8,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
-import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock } from "lucide-react"
+import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
+
+// Icon mapping for core beliefs
+const iconMap: Record<string, any> = {
+  Heart,
+  Users,
+  BookOpen,
+  Globe,
+  Award,
+  User
+}
 
 // Types
 interface Sermon {
@@ -79,11 +89,20 @@ export default function AdminPage() {
   const [uploadedFiles, setUploadedFiles] = useState<any[]>([])
   const [isLoadingData, setIsLoadingData] = useState(false)
   
+  // About page state
+  const [aboutContent, setAboutContent] = useState<any>({
+    sections: {},
+    coreBeliefs: [],
+    leadership: []
+  })
+  
   // UI state
   const [activeTab, setActiveTab] = useState('sermons')
   const [isEditing, setIsEditing] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
   const [galleryCategory, setGalleryCategory] = useState('Other')
+  const [editingBelief, setEditingBelief] = useState<any>(null)
+  const [editingLeader, setEditingLeader] = useState<any>(null)
   
   // Form states
   const [sermonForm, setSermonForm] = useState({
@@ -139,6 +158,31 @@ export default function AdminPage() {
     }
   })
 
+  // About page form states
+  const [aboutSectionsForm, setAboutSectionsForm] = useState({
+    history: '',
+    mission: '',
+    vision: '',
+    values: '',
+    pastors_message: ''
+  })
+
+  const [beliefForm, setBeliefForm] = useState({
+    title: '',
+    description: '',
+    icon: 'Heart',
+    order: 0
+  })
+
+  const [leaderForm, setLeaderForm] = useState({
+    name: '',
+    role: '',
+    image: '',
+    bio: '',
+    email: '',
+    order: 0
+  })
+
   // Load data on component mount
   useEffect(() => {
     if (session) {
@@ -150,13 +194,14 @@ export default function AdminPage() {
   const loadAllData = useCallback(async () => {
     setIsLoadingData(true)
     try {
-      const [sermonsRes, eventsRes, galleryRes, messagesRes, settingsRes, filesRes] = await Promise.all([
+      const [sermonsRes, eventsRes, galleryRes, messagesRes, settingsRes, filesRes, aboutRes] = await Promise.all([
         fetch('/api/sermons'),
         fetch('/api/events'),
         fetch('/api/gallery'),
         fetch('/api/messages'),
         fetch('/api/settings'),
-        fetch('/api/upload')
+        fetch('/api/upload'),
+        fetch('/api/about')
       ])
       
       if (sermonsRes.ok) setSermons(await sermonsRes.json())
@@ -169,6 +214,26 @@ export default function AdminPage() {
         setSettingsForm(settingsData)
       }
       if (filesRes.ok) setUploadedFiles(await filesRes.json())
+      if (aboutRes.ok) {
+        const aboutData = await aboutRes.json()
+        const sectionsMap: Record<string, string> = {}
+        aboutData.sections.forEach((section: any) => {
+          sectionsMap[section.type] = section.content
+        })
+        setAboutContent({
+          sections: sectionsMap,
+          coreBeliefs: aboutData.coreBeliefs || [],
+          leadership: aboutData.leadership || []
+        })
+        // Populate form with current content
+        setAboutSectionsForm({
+          history: sectionsMap.history || '',
+          mission: sectionsMap.mission || '',
+          vision: sectionsMap.vision || '',
+          values: sectionsMap.values || '',
+          pastors_message: sectionsMap.pastors_message || ''
+        })
+      }
     } catch (error) {
       console.error('Error loading data:', error)
       toast({
@@ -429,6 +494,173 @@ export default function AdminPage() {
     }
   }
 
+  // About page management functions
+  const handleSaveAboutSection = async (sectionType: string, content: string) => {
+    try {
+      const response = await fetch('/api/about', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'section',
+          data: { sectionType, content }
+        })
+      })
+      
+      if (response.ok) {
+        await loadAllData()
+        window.dispatchEvent(new CustomEvent('aboutUpdated'))
+        toast({
+          title: "Success",
+          description: `${sectionType.charAt(0).toUpperCase() + sectionType.slice(1)} updated successfully`
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save section",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleSaveBelief = async () => {
+    try {
+      const response = await fetch('/api/about', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'core_belief',
+          data: { ...beliefForm, id: editingBelief?.id }
+        })
+      })
+      
+      if (response.ok) {
+        await loadAllData()
+        window.dispatchEvent(new CustomEvent('aboutUpdated'))
+        setBeliefForm({ title: '', description: '', icon: 'Heart', order: 0 })
+        setEditingBelief(null)
+        toast({
+          title: "Success",
+          description: "Core belief saved successfully"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save core belief",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteBelief = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this core belief?')) return
+    try {
+      const response = await fetch(`/api/about?type=core_belief&id=${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        await loadAllData()
+        window.dispatchEvent(new CustomEvent('aboutUpdated'))
+        toast({
+          title: "Success",
+          description: "Core belief deleted successfully"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete core belief",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleSaveLeader = async () => {
+    try {
+      const response = await fetch('/api/about', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'leadership',
+          data: { ...leaderForm, id: editingLeader?.id }
+        })
+      })
+      
+      if (response.ok) {
+        await loadAllData()
+        window.dispatchEvent(new CustomEvent('aboutUpdated'))
+        setLeaderForm({ name: '', role: '', image: '', bio: '', email: '', order: 0 })
+        setEditingLeader(null)
+        toast({
+          title: "Success",
+          description: "Leadership member saved successfully"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save leadership member",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteLeader = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this leadership member?')) return
+    try {
+      const response = await fetch(`/api/about?type=leadership&id=${id}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        await loadAllData()
+        window.dispatchEvent(new CustomEvent('aboutUpdated'))
+        toast({
+          title: "Success",
+          description: "Leadership member deleted successfully"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete leadership member",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const startEditBelief = (belief: any) => {
+    setEditingBelief(belief)
+    setBeliefForm({
+      title: belief.title,
+      description: belief.description,
+      icon: belief.icon || 'Heart',
+      order: belief.order || 0
+    })
+  }
+
+  const startEditLeader = (leader: any) => {
+    setEditingLeader(leader)
+    setLeaderForm({
+      name: leader.name,
+      role: leader.role,
+      image: leader.image,
+      bio: leader.bio,
+      email: leader.email,
+      order: leader.order || 0
+    })
+  }
+
+  const handleLeaderPhotoUpload = (file: any) => {
+    setLeaderForm({ ...leaderForm, image: file.url })
+    toast({
+      title: "Photo Uploaded",
+      description: "Photo URL has been set"
+    })
+  }
+
   const handleFileUploadComplete = (file: any) => {
     setUploadedFiles(prev => [file, ...prev])
   }
@@ -548,6 +780,7 @@ export default function AdminPage() {
             { id: 'sermons', label: 'Sermons', icon: Music },
             { id: 'events', label: 'Events', icon: Calendar },
             { id: 'gallery', label: 'Gallery', icon: Image },
+            { id: 'about', label: 'About Page', icon: FileText },
             { id: 'messages', label: 'Messages', icon: Mail },
             { id: 'settings', label: 'Settings', icon: Settings }
           ].map(({ id, label, icon: Icon }) => (
@@ -967,19 +1200,346 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* About Page Tab */}
+          {activeTab === 'about' && !isLoadingData && (
+            <div className="space-y-6">
+              {/* History Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Church History</CardTitle>
+                  <CardDescription>Edit the church history content</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="history-content">History Content</Label>
+                    <Textarea
+                      id="history-content"
+                      value={aboutSectionsForm.history}
+                      onChange={(e) => setAboutSectionsForm({...aboutSectionsForm, history: e.target.value})}
+                      placeholder="Enter church history..."
+                      rows={8}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">You can use multiple paragraphs. Each line break will be preserved.</p>
+                  </div>
+                  <Button onClick={() => handleSaveAboutSection('history', aboutSectionsForm.history)}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save History
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Mission, Vision, Values */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Mission</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Textarea
+                      value={aboutSectionsForm.mission}
+                      onChange={(e) => setAboutSectionsForm({...aboutSectionsForm, mission: e.target.value})}
+                      placeholder="Enter mission statement..."
+                      rows={4}
+                    />
+                    <Button size="sm" onClick={() => handleSaveAboutSection('mission', aboutSectionsForm.mission)} className="w-full">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Vision</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Textarea
+                      value={aboutSectionsForm.vision}
+                      onChange={(e) => setAboutSectionsForm({...aboutSectionsForm, vision: e.target.value})}
+                      placeholder="Enter vision statement..."
+                      rows={4}
+                    />
+                    <Button size="sm" onClick={() => handleSaveAboutSection('vision', aboutSectionsForm.vision)} className="w-full">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Values</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Textarea
+                      value={aboutSectionsForm.values}
+                      onChange={(e) => setAboutSectionsForm({...aboutSectionsForm, values: e.target.value})}
+                      placeholder="Enter values (one per line)..."
+                      rows={4}
+                    />
+                    <Button size="sm" onClick={() => handleSaveAboutSection('values', aboutSectionsForm.values)} className="w-full">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Pastor's Message */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pastor's Message</CardTitle>
+                  <CardDescription>Edit the pastor's welcome message</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Textarea
+                    value={aboutSectionsForm.pastors_message}
+                    onChange={(e) => setAboutSectionsForm({...aboutSectionsForm, pastors_message: e.target.value})}
+                    placeholder="Enter pastor's message..."
+                    rows={8}
+                  />
+                  <Button onClick={() => handleSaveAboutSection('pastors_message', aboutSectionsForm.pastors_message)}>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Pastor's Message
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Core Beliefs */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Core Beliefs</CardTitle>
+                  <CardDescription>Manage the four core beliefs displayed on the about page</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h3 className="font-semibold">{editingBelief ? 'Edit' : 'Add'} Core Belief</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="belief-title">Title</Label>
+                        <Input
+                          id="belief-title"
+                          value={beliefForm.title}
+                          onChange={(e) => setBeliefForm({...beliefForm, title: e.target.value})}
+                          placeholder="e.g., Salvation by Grace"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="belief-icon">Icon</Label>
+                        <Select
+                          id="belief-icon"
+                          value={beliefForm.icon}
+                          onChange={(e) => setBeliefForm({...beliefForm, icon: e.target.value})}
+                        >
+                          <option value="Heart">Heart</option>
+                          <option value="BookOpen">Book Open</option>
+                          <option value="Users">Users</option>
+                          <option value="Globe">Globe</option>
+                          <option value="Award">Award</option>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="belief-description">Description</Label>
+                      <Textarea
+                        id="belief-description"
+                        value={beliefForm.description}
+                        onChange={(e) => setBeliefForm({...beliefForm, description: e.target.value})}
+                        placeholder="Enter belief description..."
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveBelief}>
+                        <Save className="w-4 h-4 mr-2" />
+                        {editingBelief ? 'Update' : 'Add'} Belief
+                      </Button>
+                      {editingBelief && (
+                        <Button variant="outline" onClick={() => {
+                          setEditingBelief(null)
+                          setBeliefForm({ title: '', description: '', icon: 'Heart', order: 0 })
+                        }}>
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Current Core Beliefs ({aboutContent.coreBeliefs.length})</h3>
+                    {aboutContent.coreBeliefs.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">No core beliefs added yet.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {aboutContent.coreBeliefs.map((belief: any) => {
+                          const IconComponent = iconMap[belief.icon] || Heart
+                          return (
+                            <Card key={belief.id}>
+                              <CardHeader>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <IconComponent className="h-5 w-5 text-primary" />
+                                    <CardTitle className="text-lg">{belief.title}</CardTitle>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button size="sm" variant="outline" onClick={() => startEditBelief(belief)}>
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button size="sm" variant="destructive" onClick={() => handleDeleteBelief(belief.id)}>
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent>
+                                <p className="text-sm text-muted-foreground">{belief.description}</p>
+                              </CardContent>
+                            </Card>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Leadership Team */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Leadership Team</CardTitle>
+                  <CardDescription>Add, edit, or remove leadership team members</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="border rounded-lg p-4 space-y-4">
+                    <h3 className="font-semibold">{editingLeader ? 'Edit' : 'Add'} Leadership Member</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="leader-name">Name</Label>
+                        <Input
+                          id="leader-name"
+                          value={leaderForm.name}
+                          onChange={(e) => setLeaderForm({...leaderForm, name: e.target.value})}
+                          placeholder="Full name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="leader-role">Role</Label>
+                        <Input
+                          id="leader-role"
+                          value={leaderForm.role}
+                          onChange={(e) => setLeaderForm({...leaderForm, role: e.target.value})}
+                          placeholder="e.g., Senior Pastor"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="leader-email">Email</Label>
+                        <Input
+                          id="leader-email"
+                          type="email"
+                          value={leaderForm.email}
+                          onChange={(e) => setLeaderForm({...leaderForm, email: e.target.value})}
+                          placeholder="email@example.com"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="leader-image">Photo URL</Label>
+                        <Input
+                          id="leader-image"
+                          value={leaderForm.image}
+                          onChange={(e) => setLeaderForm({...leaderForm, image: e.target.value})}
+                          placeholder="Image URL"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1 mb-2">Paste image URL or upload image below</p>
+                        <FileUpload
+                          type="gallery"
+                          accept="image/*"
+                          maxSize={5}
+                          multiple={false}
+                          onUploadComplete={handleLeaderPhotoUpload}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="leader-bio">Bio</Label>
+                      <Textarea
+                        id="leader-bio"
+                        value={leaderForm.bio}
+                        onChange={(e) => setLeaderForm({...leaderForm, bio: e.target.value})}
+                        placeholder="Enter biography..."
+                        rows={4}
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={handleSaveLeader}>
+                        <Save className="w-4 h-4 mr-2" />
+                        {editingLeader ? 'Update' : 'Add'} Member
+                      </Button>
+                      {editingLeader && (
+                        <Button variant="outline" onClick={() => {
+                          setEditingLeader(null)
+                          setLeaderForm({ name: '', role: '', image: '', bio: '', email: '', order: 0 })
+                        }}>
+                          <X className="w-4 h-4 mr-2" />
+                          Cancel
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Current Leadership Team ({aboutContent.leadership.length})</h3>
+                    {aboutContent.leadership.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">No leadership members added yet.</p>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {aboutContent.leadership.map((leader: any) => (
+                          <Card key={leader.id} className="text-center">
+                            <CardHeader>
+                              <div className="mx-auto w-24 h-24 rounded-full overflow-hidden mb-3 border-2 border-primary/20">
+                                <img
+                                  src={leader.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"}
+                                  alt={leader.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <CardTitle className="text-lg">{leader.name}</CardTitle>
+                              <CardDescription>{leader.role}</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{leader.bio}</p>
+                              <div className="flex gap-2 justify-center">
+                                <Button size="sm" variant="outline" onClick={() => startEditLeader(leader)}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button size="sm" variant="destructive" onClick={() => handleDeleteLeader(leader.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Messages Tab */}
           {activeTab === 'messages' && !isLoadingData && (
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="flex items-center">
-                      <Mail className="w-5 h-5 mr-2" />
-                      Contact Messages ({contactMessages.length})
-                    </CardTitle>
-                    <CardDescription>
-                      View and respond to contact form messages
-                    </CardDescription>
+                <CardTitle className="flex items-center">
+                  <Mail className="w-5 h-5 mr-2" />
+                  Contact Messages ({contactMessages.length})
+                </CardTitle>
+                <CardDescription>
+                  View and respond to contact form messages
+                </CardDescription>
                   </div>
                   <Button variant="outline" size="sm" onClick={loadAllData}>
                     Refresh
@@ -993,7 +1553,7 @@ export default function AdminPage() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{message.name}</h3>
+                          <h3 className="font-semibold">{message.name}</h3>
                             {message.status === 'new' && (
                               <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
                                 New

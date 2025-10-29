@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Heart, Users, BookOpen, Globe, Award, User, Clock, MapPin, Phone, Mail } from "lucide-react"
@@ -8,41 +9,65 @@ import { ChurchLogo } from "@/components/church-logo"
 import Image from "next/image"
 import { useSettings } from "@/components/settings-provider"
 
+// Icon mapping
+const iconMap: Record<string, any> = {
+  Heart,
+  Users,
+  BookOpen,
+  Globe,
+  Award,
+  User
+}
+
 export default function AboutPage() {
   const { settings } = useSettings()
-  
-  const leadership = [
-    {
-      name: settings?.pastorName || "Rev. John Joseph Hayab",
-      role: "Senior Pastor",
-      image: settings?.aboutImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-      bio: `${settings?.pastorName || "Rev. John Joseph Hayab"} has been serving ${settings?.churchName || "Amazing Grace Baptist Church"} for many years. He is passionate about community outreach and spiritual growth.`,
-      email: settings?.churchEmail || "pastor@amazinggracechurch.org"
-    }
-  ]
+  const [history, setHistory] = useState<string>('')
+  const [mission, setMission] = useState<string>('')
+  const [vision, setVision] = useState<string>('')
+  const [values, setValues] = useState<string>('')
+  const [pastorsMessage, setPastorsMessage] = useState<string>('')
+  const [coreBeliefs, setCoreBeliefs] = useState<any[]>([])
+  const [leadership, setLeadership] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const coreBeliefs = [
-    {
-      title: "Salvation by Grace",
-      description: "We believe that salvation is a gift from God, received through faith in Jesus Christ alone, not by works or human effort.",
-      icon: Heart
-    },
-    {
-      title: "Authority of Scripture",
-      description: "The Bible is the inspired, infallible Word of God and our ultimate authority for faith and practice.",
-      icon: BookOpen
-    },
-    {
-      title: "Priesthood of Believers",
-      description: "Every believer has direct access to God through Jesus Christ and is called to serve in ministry.",
-      icon: Users
-    },
-    {
-      title: "Great Commission",
-      description: "We are called to make disciples of all nations, sharing the Gospel both locally and globally.",
-      icon: Globe
+  useEffect(() => {
+    const fetchAboutContent = async () => {
+      try {
+        const response = await fetch('/api/about')
+        if (response.ok) {
+          const data = await response.json()
+          
+          // Map sections
+          const sectionsMap: Record<string, string> = {}
+          data.sections.forEach((section: any) => {
+            sectionsMap[section.type] = section.content
+          })
+          
+          setHistory(sectionsMap.history || '')
+          setMission(sectionsMap.mission || '')
+          setVision(sectionsMap.vision || '')
+          setValues(sectionsMap.values || '')
+          setPastorsMessage(sectionsMap.pastors_message || '')
+          setCoreBeliefs(data.coreBeliefs || [])
+          setLeadership(data.leadership || [])
+        }
+      } catch (error) {
+        console.error('Error fetching about content:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchAboutContent()
+
+    // Listen for updates
+    const handleAboutUpdate = () => {
+      fetchAboutContent()
+    }
+
+    window.addEventListener('aboutUpdated', handleAboutUpdate)
+    return () => window.removeEventListener('aboutUpdated', handleAboutUpdate)
+  }, [])
 
   return (
     <div className="min-h-screen">
@@ -73,21 +98,21 @@ export default function AboutPage() {
           <div className="max-w-4xl mx-auto">
             <h2 className="text-3xl font-bold text-primary mb-8 text-center">Our History</h2>
             <div className="prose prose-lg max-w-none">
-              <p className="text-lg text-muted-foreground mb-6">
-                Amazing Grace Baptist Church was established in 2015 in U/Zawu, Gonin Gora, Kaduna State, Nigeria. 
-                What began as a small gathering of believers has grown into a vibrant community of faith serving 
-                hundreds of families in our local area.
-              </p>
-              <p className="text-lg text-muted-foreground mb-6">
-                Our church was founded on the principles of grace, love, and community service. Over the years, 
-                we have remained committed to spreading the Gospel of Jesus Christ while addressing the spiritual 
-                and physical needs of our community.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                Today, we continue to grow and adapt to serve our community better, offering various ministries 
-                including youth programs, community outreach, Bible studies, and worship services that welcome 
-                people from all walks of life.
-              </p>
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                </div>
+              ) : history ? (
+                <div className="text-lg text-muted-foreground whitespace-pre-line">
+                  {history}
+                </div>
+              ) : (
+                <p className="text-lg text-muted-foreground mb-6">
+                  Amazing Grace Baptist Church was established in 2015 in U/Zawu, Gonin Gora, Kaduna State, Nigeria. 
+                  What began as a small gathering of believers has grown into a vibrant community of faith serving 
+                  hundreds of families in our local area.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -103,10 +128,13 @@ export default function AboutPage() {
                 <CardTitle>Our Mission</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  To glorify God by making disciples of Jesus Christ through worship, fellowship, 
-                  discipleship, ministry, and evangelism, while serving our community with love and compassion.
-                </p>
+                {loading ? (
+                  <div className="animate-pulse h-20 bg-muted rounded"></div>
+                ) : (
+                  <p className="text-muted-foreground whitespace-pre-line">
+                    {mission || 'To glorify God by making disciples of Jesus Christ through worship, fellowship, discipleship, ministry, and evangelism, while serving our community with love and compassion.'}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -116,10 +144,13 @@ export default function AboutPage() {
                 <CardTitle>Our Vision</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">
-                  To be a thriving, Christ-centered community that transforms lives through the power 
-                  of God's grace, building bridges of hope and healing in our neighborhood and beyond.
-                </p>
+                {loading ? (
+                  <div className="animate-pulse h-20 bg-muted rounded"></div>
+                ) : (
+                  <p className="text-muted-foreground whitespace-pre-line">
+                    {vision || 'To be a thriving, Christ-centered community that transforms lives through the power of God\'s grace, building bridges of hope and healing in our neighborhood and beyond.'}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -129,13 +160,25 @@ export default function AboutPage() {
                 <CardTitle>Our Values</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="text-muted-foreground space-y-2">
-                  <li>• Grace-centered living</li>
-                  <li>• Authentic community</li>
-                  <li>• Servant leadership</li>
-                  <li>• Biblical truth</li>
-                  <li>• Compassionate outreach</li>
-                </ul>
+                {loading ? (
+                  <div className="animate-pulse h-20 bg-muted rounded"></div>
+                ) : (
+                  <div className="text-muted-foreground whitespace-pre-line">
+                    {values ? (
+                      values.split('\n').map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))
+                    ) : (
+                      <ul className="space-y-2">
+                        <li>• Grace-centered living</li>
+                        <li>• Authentic community</li>
+                        <li>• Servant leadership</li>
+                        <li>• Biblical truth</li>
+                        <li>• Compassionate outreach</li>
+                      </ul>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -149,21 +192,64 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-primary mb-4">Our Core Beliefs</h2>
             <p className="text-lg text-muted-foreground">The foundational truths that guide our faith and practice</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {coreBeliefs.map((belief, index) => (
-              <Card key={index}>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <Card key={i}>
+                  <CardHeader>
+                    <div className="animate-pulse h-6 bg-muted rounded w-3/4"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="animate-pulse h-4 bg-muted rounded"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : coreBeliefs.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {coreBeliefs.map((belief, index) => {
+                const IconComponent = iconMap[belief.icon] || Heart
+                return (
+                  <Card key={belief.id || index}>
+                    <CardHeader>
+                      <div className="flex items-center space-x-3">
+                        <IconComponent className="h-6 w-6 text-primary" />
+                        <CardTitle className="text-xl">{belief.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{belief.description}</p>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
                 <CardHeader>
                   <div className="flex items-center space-x-3">
-                    <belief.icon className="h-6 w-6 text-primary" />
-                    <CardTitle className="text-xl">{belief.title}</CardTitle>
+                    <Heart className="h-6 w-6 text-primary" />
+                    <CardTitle className="text-xl">Salvation by Grace</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">{belief.description}</p>
+                  <p className="text-muted-foreground">We believe that salvation is a gift from God, received through faith in Jesus Christ alone, not by works or human effort.</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center space-x-3">
+                    <BookOpen className="h-6 w-6 text-primary" />
+                    <CardTitle className="text-xl">Authority of Scripture</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">The Bible is the inspired, infallible Word of God and our ultimate authority for faith and practice.</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </section>
 
@@ -174,31 +260,71 @@ export default function AboutPage() {
             <h2 className="text-3xl font-bold text-primary mb-4">Leadership Team</h2>
             <p className="text-lg text-muted-foreground">Meet the dedicated leaders who guide our church community</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {leadership.map((leader, index) => (
-              <Card key={index} className="text-center overflow-hidden">
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {[1, 2, 3].map(i => (
+                <Card key={i}>
+                  <CardHeader>
+                    <div className="animate-pulse h-32 w-32 bg-muted rounded-full mx-auto"></div>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          ) : leadership.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {leadership.map((leader, index) => (
+                <Card key={leader.id || index} className="text-center overflow-hidden">
+                  <CardHeader>
+                    <div className="mx-auto w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-primary/20 shadow-lg">
+                      <Image 
+                        src={leader.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"} 
+                        alt={leader.name}
+                        width={128}
+                        height={128}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <CardTitle className="text-xl">{leader.name}</CardTitle>
+                    <CardDescription className="text-lg font-medium text-primary">{leader.role}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground mb-4">{leader.bio}</p>
+                    {leader.email && (
+                      <Button variant="outline" size="sm" asChild className="hover:scale-105 transition-transform">
+                        <a href={`mailto:${leader.email}`}>Contact</a>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="text-center overflow-hidden">
                 <CardHeader>
                   <div className="mx-auto w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-primary/20 shadow-lg">
                     <Image 
-                      src={leader.image} 
-                      alt={leader.name}
+                      src={settings?.aboutImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"} 
+                      alt={settings?.pastorName || "Pastor"}
                       width={128}
                       height={128}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <CardTitle className="text-xl">{leader.name}</CardTitle>
-                  <CardDescription className="text-lg font-medium text-primary">{leader.role}</CardDescription>
+                  <CardTitle className="text-xl">{settings?.pastorName || "Rev. John Joseph Hayab"}</CardTitle>
+                  <CardDescription className="text-lg font-medium text-primary">Senior Pastor</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground mb-4">{leader.bio}</p>
+                  <p className="text-muted-foreground mb-4">
+                    {settings?.pastorName || "Rev. John Joseph Hayab"} has been serving {settings?.churchName || "Amazing Grace Baptist Church"} for many years.
+                  </p>
                   <Button variant="outline" size="sm" asChild className="hover:scale-105 transition-transform">
-                    <a href={`mailto:${leader.email}`}>Contact</a>
+                    <a href={`mailto:${settings?.churchEmail || "pastor@amazinggracechurch.org"}`}>Contact</a>
                   </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -210,26 +336,30 @@ export default function AboutPage() {
               <CardTitle className="text-3xl text-primary">A Message from Our Pastor</CardTitle>
             </CardHeader>
             <CardContent className="prose prose-lg max-w-none">
-              <p className="text-lg text-muted-foreground mb-6">
-                Welcome to Amazing Grace Baptist Church! It is my joy and privilege to serve as your pastor 
-                and to welcome you into our church family.
-              </p>
-              <p className="text-lg text-muted-foreground mb-6">
-                Our church is built on the foundation of God's amazing grace - the unmerited favor that 
-                saves us, sustains us, and empowers us to live for His glory. We believe that every person 
-                is valuable in God's eyes and has a unique purpose in His kingdom.
-              </p>
-              <p className="text-lg text-muted-foreground mb-6">
-                Whether you are new to faith, returning to church, or looking for a new church home, 
-                we invite you to join us on this journey of discovering God's grace together. 
-                You will find a warm, welcoming community where you can grow in your relationship 
-                with Christ and serve alongside fellow believers.
-              </p>
-              <p className="text-lg text-muted-foreground">
-                I look forward to meeting you and sharing in the joy of God's amazing grace!
-              </p>
+              {loading ? (
+                <div className="space-y-4">
+                  <div className="animate-pulse h-4 bg-muted rounded w-full"></div>
+                  <div className="animate-pulse h-4 bg-muted rounded w-5/6"></div>
+                  <div className="animate-pulse h-4 bg-muted rounded w-4/6"></div>
+                </div>
+              ) : pastorsMessage ? (
+                <div className="text-lg text-muted-foreground whitespace-pre-line">
+                  {pastorsMessage}
+                </div>
+              ) : (
+                <>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    Welcome to Amazing Grace Baptist Church! It is my joy and privilege to serve as your pastor 
+                    and to welcome you into our church family.
+                  </p>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    Our church is built on the foundation of God's amazing grace - the unmerited favor that 
+                    saves us, sustains us, and empowers us to live for His glory.
+                  </p>
+                </>
+              )}
               <div className="mt-8 text-right">
-                <p className="font-semibold text-primary">Rev. John Joseph Hayab</p>
+                <p className="font-semibold text-primary">{settings?.pastorName || "Rev. John Joseph Hayab"}</p>
                 <p className="text-muted-foreground">Senior Pastor</p>
               </div>
             </CardContent>
