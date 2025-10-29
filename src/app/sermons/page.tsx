@@ -59,12 +59,34 @@ export default function SermonsPage() {
 
   const getAudioUrl = (sermon: Sermon) => {
     const url = sermon.audioUrl || sermon.audio_url
-    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
+      // Convert S3 URL to proxy URL for better handling
+      if (url.includes('amazing-grace-church.s3')) {
+        const s3Path = url.split('amazing-grace-church.s3')[1]?.split('.amazonaws.com/')[1] || 
+                       url.split('amazing-grace-church.s3.eu-north-1.amazonaws.com/')[1]
+        if (s3Path) {
+          return `/api/media/${s3Path}`
+        }
+      }
+      return url
+    }
+    return null
   }
   
   const getVideoUrl = (sermon: Sermon) => {
     const url = sermon.videoUrl || sermon.video_url
-    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
+      // Convert S3 URL to proxy URL for better handling
+      if (url.includes('amazing-grace-church.s3')) {
+        const s3Path = url.split('amazing-grace-church.s3')[1]?.split('.amazonaws.com/')[1] || 
+                       url.split('amazing-grace-church.s3.eu-north-1.amazonaws.com/')[1]
+        if (s3Path) {
+          return `/api/media/${s3Path}`
+        }
+      }
+      return url
+    }
+    return null
   }
   
   const getNotesUrl = (sermon: Sermon) => {

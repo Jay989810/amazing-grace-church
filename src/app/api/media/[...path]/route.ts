@@ -1,4 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+
+// Initialize S3 client
+function getS3Client() {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    throw new Error('AWS credentials not configured')
+  }
+  
+  return new S3Client({
+    region: process.env.AWS_REGION || 'eu-north-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  })
+}
 
 export async function GET(
   request: NextRequest,
@@ -7,55 +24,21 @@ export async function GET(
   try {
     const resolvedParams = await params
     const path = resolvedParams.path.join('/')
-    const mediaUrl = `https://amazing-grace-church.s3.eu-north-1.amazonaws.com/${path}`
     
-    // Fetch the media file from S3
-    const response = await fetch(mediaUrl)
+    // Generate presigned URL from S3
+    const s3Client = getS3Client()
+    const bucket = process.env.AWS_S3_BUCKET || 'amazing-grace-church'
     
-    if (!response.ok) {
-      return new NextResponse('Media not found', { status: 404 })
-    }
-    
-    // Get the content type from S3 response
-    const contentType = response.headers.get('content-type') || 'application/octet-stream'
-    const contentLength = response.headers.get('content-length')
-    
-    // Create response with proper headers for media playback
-    const headers = new Headers({
-      'Content-Type': contentType,
-      'Accept-Ranges': 'bytes',
-      'Cache-Control': 'public, max-age=31536000', // 1 year cache
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-      'Access-Control-Allow-Headers': 'Range, Content-Type',
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: path,
     })
     
-    if (contentLength) {
-      headers.set('Content-Length', contentLength)
-    }
+    // Generate presigned URL valid for 1 hour
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
     
-    // Handle range requests for video/audio seeking
-    const range = request.headers.get('range')
-    if (range) {
-      const rangeMatch = range.match(/bytes=(\d+)-(\d*)/)
-      if (rangeMatch) {
-        const start = parseInt(rangeMatch[1])
-        const end = rangeMatch[2] ? parseInt(rangeMatch[2]) : parseInt(contentLength || '0') - 1
-        
-        headers.set('Content-Range', `bytes ${start}-${end}/${contentLength}`)
-        headers.set('Content-Length', (end - start + 1).toString())
-        
-        return new NextResponse(response.body, {
-          status: 206,
-          headers
-        })
-      }
-    }
-    
-    return new NextResponse(response.body, {
-      status: 200,
-      headers
-    })
+    // Redirect to presigned URL
+    return NextResponse.redirect(presignedUrl)
     
   } catch (error) {
     console.error('Media proxy error:', error)
@@ -70,9 +53,19 @@ export async function HEAD(
   try {
     const resolvedParams = await params
     const path = resolvedParams.path.join('/')
-    const mediaUrl = `https://amazing-grace-church.s3.eu-north-1.amazonaws.com/${path}`
     
-    const response = await fetch(mediaUrl, { method: 'HEAD' })
+    const s3Client = getS3Client()
+    const bucket = process.env.AWS_S3_BUCKET || 'amazing-grace-church'
+    
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: path,
+    })
+    
+    // Generate presigned URL
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
+    
+    const response = await fetch(presignedUrl, { method: 'HEAD' })
     
     if (!response.ok) {
       return new NextResponse('Media not found', { status: 404 })
