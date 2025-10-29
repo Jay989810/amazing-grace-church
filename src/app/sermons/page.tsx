@@ -41,7 +41,11 @@ export default function SermonsPage() {
         const response = await fetch('/api/sermons')
         if (response.ok) {
           const data = await response.json()
-          setSermons(data)
+          console.log('Fetched sermons:', data)
+          // Filter out incomplete sermons
+          const validSermons = data.filter((sermon: any) => sermon.title && sermon.speaker)
+          console.log('Valid sermons:', validSermons)
+          setSermons(validSermons)
         } else {
           console.error('Failed to fetch sermons')
         }
