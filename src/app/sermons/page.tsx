@@ -97,20 +97,20 @@ export default function SermonsPage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-20">
+      <section className="relative bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-12 md:py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-8">
+          <div className="text-center space-y-6 md:space-y-8">
             {/* Church Logo */}
-            <div className="flex justify-center mb-8">
-              <div className="relative bg-primary/10 rounded-full p-6 border-4 border-primary/20 shadow-lg">
+            <div className="flex justify-center mb-6 md:mb-8">
+              <div className="relative bg-primary/10 rounded-full p-4 md:p-6 border-4 border-primary/20 shadow-lg">
                 <ChurchLogo size="lg" />
               </div>
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-bold text-primary">
+            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold text-primary px-4">
               Sermons & Messages
             </h1>
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
+            <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto px-4">
               Watch, listen, and download our weekly sermons and Bible study messages
             </p>
           </div>
@@ -120,9 +120,9 @@ export default function SermonsPage() {
       {/* Filters and Search */}
       <section className="py-8 bg-muted/50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
             {/* Search */}
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 w-full md:max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
@@ -134,14 +134,14 @@ export default function SermonsPage() {
             </div>
 
             {/* Category Filter */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-center md:justify-start">
               {categories.map((category) => (
                 <Button
                   key={category}
                   variant={selectedCategory === category ? "default" : "outline"}
                   size="sm"
                   onClick={() => setSelectedCategory(category)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 whitespace-nowrap"
                 >
                   <Filter className="h-4 w-4" />
                   {category}
@@ -174,28 +174,28 @@ export default function SermonsPage() {
                     </div>
                   </div>
                   <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
                         {sermon.category}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {formatDate(sermon.date)}
                       </span>
                     </div>
-                    <CardTitle className="text-lg line-clamp-2">{sermon.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <User className="h-4 w-4" />
-                      {sermon.speaker}
+                    <CardTitle className="text-lg line-clamp-2 mt-2">{sermon.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 mt-1">
+                      <User className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{sermon.speaker}</span>
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
                       {sermon.description}
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button 
                         size="sm" 
-                        className="flex-1 hover:scale-105 transition-transform"
+                        className="flex-1 min-w-[120px] hover:scale-105 transition-transform"
                         onClick={() => handleWatchSermon(sermon.title)}
                       >
                         <Play className="h-4 w-4 mr-2" />
@@ -219,16 +219,16 @@ export default function SermonsPage() {
       </section>
 
       {/* Call to Action */}
-      <section className="py-16 bg-primary text-primary-foreground">
+      <section className="py-12 md:py-16 bg-primary text-primary-foreground">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">Stay Updated</h2>
+          <p className="text-lg md:text-xl mb-6 md:mb-8 max-w-2xl mx-auto px-4">
             Subscribe to our newsletter to receive notifications about new sermons and church updates.
           </p>
           <Button 
             size="lg" 
             variant="secondary" 
-            className="text-lg px-8 py-6 hover:scale-105 transition-transform"
+            className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 hover:scale-105 transition-transform"
             onClick={handleSubscribeToSermons}
           >
             <Mail className="h-4 w-4 mr-2" />
