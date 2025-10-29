@@ -140,14 +140,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
-    // Delete from Vercel Blob if blobPath exists
-    if (file.blobPath) {
-      try {
+    // Delete from Vercel Blob
+    try {
+      if (file.url) {
+        // Delete by URL
+        await del(file.url)
+        console.log('Deleted file from Blob by URL:', file.url)
+      } else if (file.blobPath) {
+        // Delete by path
         await del(file.blobPath)
-      } catch (blobError) {
-        console.error('Error deleting from Blob:', blobError)
-        // Continue with database deletion even if blob deletion fails
+        console.log('Deleted file from Blob by path:', file.blobPath)
       }
+    } catch (blobError) {
+      console.error('Error deleting from Blob:', blobError)
+      // Continue with database deletion even if blob deletion fails
     }
 
     // Delete from database

@@ -726,7 +726,7 @@ export default function AdminPage() {
     
     try {
       console.log('Deleting file with ID:', fileId)
-      const response = await fetch(`/api/upload?id=${fileId}`, {
+      const response = await fetch(`/api/upload/blob?id=${fileId}`, {
         method: 'DELETE'
       })
       
