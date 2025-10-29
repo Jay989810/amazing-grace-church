@@ -96,7 +96,6 @@ export function FileUpload({
 
       const blob = await put(blobPath, file, {
         access: 'public',
-        addRandomSuffix: false,
         token
       })
 
