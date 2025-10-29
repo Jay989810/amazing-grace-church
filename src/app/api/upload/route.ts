@@ -2,20 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
-
-// Ensure upload directories exist
-const ensureUploadDirs = async () => {
-  const uploadDir = join(process.cwd(), 'public', 'uploads')
-  const sermonsDir = join(uploadDir, 'sermons')
-  const galleryDir = join(uploadDir, 'gallery')
-  
-  if (!existsSync(uploadDir)) await mkdir(uploadDir, { recursive: true })
-  if (!existsSync(sermonsDir)) await mkdir(sermonsDir, { recursive: true })
-  if (!existsSync(galleryDir)) await mkdir(galleryDir, { recursive: true })
-}
+import { put, del } from '@vercel/blob'
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,39 +21,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    // Check file size (4MB limit for Vercel)
-    const maxSize = 4 * 1024 * 1024 // 4MB
+    // Check file size (100MB limit for Vercel Blob)
+    const maxSize = 100 * 1024 * 1024 // 100MB
     if (file.size > maxSize) {
       return NextResponse.json({ 
-        error: 'File too large. Maximum size is 4MB.' 
+        error: 'File too large. Maximum size is 100MB.' 
       }, { status: 413 })
     }
 
-    const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    
     // Generate unique filename
     const timestamp = Date.now()
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `${timestamp}_${originalName}`
     
-    // For Vercel, we'll store files in a cloud service or use base64
-    // For now, let's use a placeholder URL and store the file data in MongoDB
-    let publicUrl = ''
-    
-    if (type === 'sermon') {
-      publicUrl = `/uploads/sermons/${filename}`
-    } else if (type === 'gallery') {
-      publicUrl = `/uploads/gallery/${filename}`
-    } else if (type === 'settings') {
-      publicUrl = `/uploads/settings/${filename}`
-    } else {
-      return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 })
-    }
-
-    // In production, you should use a cloud storage service like AWS S3, Cloudinary, or Vercel Blob
-    // For now, we'll store the file data as base64 in MongoDB (not recommended for large files)
-    const base64Data = buffer.toString('base64')
+    // Upload to Vercel Blob
+    const blob = await put(`${type}/${filename}`, file, {
+      access: 'public',
+    })
 
     // Save file metadata to database
     const filesCollection = await getCollection('uploaded_files')
@@ -76,8 +47,7 @@ export async function POST(request: NextRequest) {
       type,
       size: file.size,
       mimeType: file.type,
-      url: publicUrl,
-      data: base64Data, // Store file data as base64
+      url: blob.url, // Vercel Blob URL
       metadata,
       uploadedBy: session.user.email,
       uploadedAt: new Date().toISOString()
@@ -89,8 +59,7 @@ export async function POST(request: NextRequest) {
       success: true,
       file: {
         id: result.insertedId.toString(),
-        ...fileDoc,
-        data: undefined // Don't send the base64 data back to client
+        ...fileDoc
       }
     })
 
@@ -145,12 +114,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
-    // Delete file from filesystem
-    const filePath = join(process.cwd(), 'public', file.url)
+    // Delete file from Vercel Blob
     try {
-      await import('fs').then(fs => fs.promises.unlink(filePath))
-    } catch (fsError) {
-      console.warn('Could not delete file from filesystem:', fsError)
+      await del(file.url)
+    } catch (blobError) {
+      console.warn('Could not delete file from Vercel Blob:', blobError)
     }
 
     // Delete from database
