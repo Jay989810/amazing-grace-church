@@ -129,46 +129,23 @@ export function FileUpload({
         throw new Error(`Failed to upload file to S3: ${uploadResponse.status} ${uploadResponse.statusText}`)
       }
 
-      console.log('Upload to S3 successful, confirming...')
+      console.log('Upload to S3 successful!')
       
-      // Step 3: Confirm upload completion
-      // Use main upload route for confirmation (most reliable)
-      const confirmResponse = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileId: presignedData.fileId,
-          type,
-          metadata
-        })
-      })
-
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json()
-        console.error('Failed to confirm upload:', errorData)
-        throw new Error(errorData.error || 'Failed to confirm upload')
-      }
-
-      const confirmData = await confirmResponse.json()
-      
-      // Validate response structure
-      if (!confirmData || !confirmData.file) {
-        console.error('Invalid confirmation response:', confirmData)
-        throw new Error('Upload confirmation failed - invalid response from server')
-      }
-      
-      const uploadedFile = confirmData.file
-      
-      // Validate required fields in uploadedFile
-      if (!uploadedFile.mimeType || !uploadedFile.url) {
-        console.error('Uploaded file missing required fields:', uploadedFile)
-        throw new Error('Upload confirmation failed - missing required file data (mimeType, url)')
+      // Step 3: Create file object directly from presigned data (skip confirmation)
+      const uploadedFile = {
+        id: presignedData.fileId,
+        originalName: file.name,
+        filename: file.name,
+        type: type || 'sermon',
+        size: file.size,
+        mimeType: file.type,
+        url: presignedData.publicUrl,
+        uploadedAt: new Date().toISOString(),
+        metadata: metadata || {}
       }
       
       console.log('Upload complete:', {
-        fileName: uploadedFile.originalName || uploadedFile.filename,
+        fileName: uploadedFile.originalName,
         fileUrl: uploadedFile.url,
         mimeType: uploadedFile.mimeType,
         fileSize: uploadedFile.size
