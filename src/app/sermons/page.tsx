@@ -59,17 +59,17 @@ export default function SermonsPage() {
 
   const getAudioUrl = (sermon: Sermon) => {
     const url = sermon.audioUrl || sermon.audio_url
-    return url && url !== '#' && url.trim() !== '' ? url : null
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
   
   const getVideoUrl = (sermon: Sermon) => {
     const url = sermon.videoUrl || sermon.video_url
-    return url && url !== '#' && url.trim() !== '' ? url : null
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
   
   const getNotesUrl = (sermon: Sermon) => {
     const url = sermon.notesUrl || sermon.notes_url
-    return url && url !== '#' && url.trim() !== '' ? url : null
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
 
   const handlePlayAudio = (sermon: Sermon) => {
@@ -104,36 +104,38 @@ export default function SermonsPage() {
     
     if (downloadUrl) {
       try {
-        // Fetch the file to trigger download
-        const response = await fetch(downloadUrl)
+        // Check if the URL is accessible
+        const response = await fetch(downloadUrl, { method: 'HEAD' })
         if (!response.ok) {
-          throw new Error('Failed to fetch file')
+          throw new Error(`File not accessible: ${response.status}`)
         }
         
-        const blob = await response.blob()
-        const blobUrl = window.URL.createObjectURL(blob)
+        // Get file extension from URL or content type
+        const urlExtension = downloadUrl.split('.').pop()?.split('?')[0] || ''
+        const contentType = response.headers.get('content-type') || ''
+        let extension = urlExtension
         
-        // Create a temporary link to trigger download
-        const link = document.createElement('a')
-        link.href = blobUrl
-        link.download = `${sermon.title} - ${sermon.speaker}.${downloadUrl.split('.').pop()?.split('?')[0] || 'mp3'}`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        // Determine extension from content type if URL doesn't have one
+        if (!extension) {
+          if (contentType.includes('audio/mpeg') || contentType.includes('audio/mp3')) {
+            extension = 'mp3'
+          } else if (contentType.includes('audio/wav')) {
+            extension = 'wav'
+          } else if (contentType.includes('video/mp4')) {
+            extension = 'mp4'
+          } else if (contentType.includes('video/quicktime')) {
+            extension = 'mov'
+          } else if (contentType.includes('application/pdf')) {
+            extension = 'pdf'
+          } else {
+            extension = 'file'
+          }
+        }
         
-        // Clean up blob URL
-        window.URL.revokeObjectURL(blobUrl)
-        
-        toast({
-          title: "Download Started",
-          description: `Downloading "${sermon.title}"...`,
-          variant: "success"
-        })
-      } catch (error) {
-        // Fallback: try direct download
+        // Create download link
         const link = document.createElement('a')
         link.href = downloadUrl
-        link.download = `${sermon.title} - ${sermon.speaker}`
+        link.download = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
         link.target = '_blank'
         document.body.appendChild(link)
         link.click()
@@ -142,7 +144,13 @@ export default function SermonsPage() {
         toast({
           title: "Download Started",
           description: `Downloading "${sermon.title}"...`,
-          variant: "success"
+        })
+      } catch (error) {
+        console.error('Download error:', error)
+        toast({
+          title: "Download Error",
+          description: error instanceof Error ? error.message : "Failed to download file. Please try again.",
+          variant: "destructive"
         })
       }
     } else {
@@ -277,6 +285,16 @@ export default function SermonsPage() {
                             controls
                             className="w-full h-full object-cover"
                             onEnded={() => setPlayingSermon(null)}
+                            onError={(e) => {
+                              console.error('Video playback error:', e)
+                              toast({
+                                title: "Playback Error",
+                                description: "Unable to play video. Please try downloading instead.",
+                                variant: "destructive"
+                              })
+                              setPlayingSermon(null)
+                            }}
+                            preload="metadata"
                           />
                           <Button
                             variant="ghost"
@@ -331,6 +349,16 @@ export default function SermonsPage() {
                           controls
                           className="w-full"
                           onEnded={() => setPlayingSermon(null)}
+                          onError={(e) => {
+                            console.error('Audio playback error:', e)
+                            toast({
+                              title: "Playback Error",
+                              description: "Unable to play audio. Please try downloading instead.",
+                              variant: "destructive"
+                            })
+                            setPlayingSermon(null)
+                          }}
+                          preload="metadata"
                         />
                       </div>
                     )}

@@ -665,7 +665,11 @@ export default function AdminPage() {
     setUploadedFiles(prev => [file, ...prev])
   }
 
-  const handleDeleteFile = async (fileId: string) => {
+  const handleDeleteFile = async (fileId: string, fileName: string) => {
+    if (!confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
+      return
+    }
+    
     try {
       const response = await fetch(`/api/upload?id=${fileId}`, {
         method: 'DELETE'
@@ -673,15 +677,58 @@ export default function AdminPage() {
       
       if (response.ok) {
         setUploadedFiles(prev => prev.filter(f => f.id !== fileId))
+        // Also remove from gallery images if it's a gallery image
+        if (galleryImages.some(img => img.image_url === uploadedFiles.find(f => f.id === fileId)?.url)) {
+          setGalleryImages(prev => prev.filter(img => img.image_url !== uploadedFiles.find(f => f.id === fileId)?.url))
+        }
         toast({
           title: "Success",
           description: "File deleted successfully"
         })
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete file')
       }
     } catch (error) {
+      console.error('Delete error:', error)
       toast({
         title: "Error",
-        description: "Failed to delete file",
+        description: error instanceof Error ? error.message : "Failed to delete file",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleDeleteGalleryImage = async (imageId: string, imageTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${imageTitle}"? This action cannot be undone.`)) {
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/gallery/delete?id=${imageId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        setGalleryImages(prev => prev.filter(img => img.id !== imageId))
+        // Also remove from uploaded files if it exists there
+        const imageToDelete = galleryImages.find(img => img.id === imageId)
+        if (imageToDelete) {
+          setUploadedFiles(prev => prev.filter(f => f.url !== imageToDelete.image_url))
+        }
+        toast({
+          title: "Success",
+          description: "Gallery image deleted successfully"
+        })
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to delete gallery image')
+      }
+    } catch (error) {
+      console.error('Delete gallery image error:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete gallery image",
         variant: "destructive"
       })
     }
@@ -1152,48 +1199,142 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
 
-              {/* Gallery Images */}
+              {/* Gallery Images from Database */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Gallery Images ({uploadedFiles.filter(f => f.type === 'gallery').length})</CardTitle>
+                  <CardTitle>Gallery Images ({galleryImages.length})</CardTitle>
+                  <CardDescription>
+                    Manage gallery images from the database. These appear on the public gallery page.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {uploadedFiles
-                      .filter(file => file.type === 'gallery')
-                      .map((file) => (
-                        <div key={file.id} className="relative group">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {galleryImages.map((image) => (
+                      <div key={image.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="relative group">
                           <img
-                            src={file.url}
-                            alt={file.originalName}
-                            className="w-full h-32 object-cover rounded-lg"
+                            src={image.image_url}
+                            alt={image.title}
+                            className="w-full h-48 object-cover rounded-lg"
                           />
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                             <div className="flex space-x-2">
                               <Button
                                 size="sm"
                                 variant="secondary"
-                                onClick={() => window.open(file.url, '_blank')}
+                                onClick={() => window.open(image.image_url, '_blank')}
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDeleteFile(file.id)}
+                                onClick={() => handleDeleteGalleryImage(image.id, image.title)}
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {file.originalName}
+                        </div>
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm line-clamp-2">
+                            {image.title}
+                          </h4>
+                          {image.album && (
+                            <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                              {image.album}
+                            </span>
+                          )}
+                          {image.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-2">
+                              {image.description}
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(image.created_at).toLocaleDateString()}
                           </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {galleryImages.length === 0 && (
+                    <div className="text-center py-12">
+                      <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No gallery images in database yet.</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Upload images using the form above to see them here.
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Uploaded Files */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Uploaded Files ({uploadedFiles.filter(f => f.type === 'gallery').length})</CardTitle>
+                  <CardDescription>
+                    Manage uploaded files. These are the raw file uploads.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {uploadedFiles
+                      .filter(file => file.type === 'gallery')
+                      .map((file) => (
+                        <div key={file.id} className="border rounded-lg p-4 space-y-3">
+                          <div className="relative group">
+                            <img
+                              src={file.url}
+                              alt={file.originalName}
+                              className="w-full h-48 object-cover rounded-lg"
+                            />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                              <div className="flex space-x-2">
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => window.open(file.url, '_blank')}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteFile(file.id, file.originalName)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm line-clamp-2">
+                              {file.metadata?.title || file.originalName}
+                            </h4>
+                            {file.metadata?.album && (
+                              <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                                {file.metadata.album}
+                              </span>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(file.uploadedAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
                         </div>
                       ))}
                   </div>
                   {uploadedFiles.filter(f => f.type === 'gallery').length === 0 && (
-                    <p className="text-center text-muted-foreground py-8">No gallery images uploaded yet.</p>
+                    <div className="text-center py-12">
+                      <Image className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No uploaded files yet.</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Upload images using the form above to see them here.
+                      </p>
+                    </div>
                   )}
                 </CardContent>
               </Card>

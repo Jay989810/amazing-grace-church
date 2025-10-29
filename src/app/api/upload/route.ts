@@ -103,7 +103,13 @@ export async function POST(request: NextRequest) {
     // Generate public URL
     const publicUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`
     
-    console.log('File uploaded successfully:', publicUrl)
+    console.log('File uploaded successfully:', {
+      publicUrl,
+      s3Key: key,
+      originalName: file.name,
+      size: file.size,
+      mimeType: file.type
+    })
 
     // Save file metadata to database
     const filesCollection = await getCollection('uploaded_files')
@@ -241,8 +247,14 @@ export async function DELETE(request: NextRequest) {
           Key: file.s3Key,
         })
         await s3Client.send(deleteCommand)
+        console.log('Successfully deleted file from S3:', file.s3Key)
       } catch (s3Error) {
-        console.warn('Could not delete file from S3:', s3Error)
+        console.error('Failed to delete file from S3:', {
+          error: s3Error,
+          s3Key: file.s3Key,
+          bucket: process.env.AWS_S3_BUCKET
+        })
+        // Don't throw error - we still want to delete from database
       }
     }
 

@@ -102,7 +102,7 @@ export default function Home() {
   }
 
   const handleWatchSermon = (sermon: Sermon) => {
-    if (sermon.video_url && sermon.video_url !== '#') {
+    if (sermon.video_url && sermon.video_url !== '#' && sermon.video_url !== 'null') {
       window.open(sermon.video_url, '_blank')
     } else {
       toast({
@@ -113,22 +113,60 @@ export default function Home() {
     }
   }
 
-  const handleDownloadSermon = (sermon: Sermon) => {
+  const handleDownloadSermon = async (sermon: Sermon) => {
     const downloadUrl = sermon.audio_url || sermon.video_url || sermon.notes_url
     
-    if (downloadUrl && downloadUrl !== '#') {
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = `${sermon.title} - ${sermon.speaker}`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      toast({
-        title: "Download Started",
-        description: `Downloading "${sermon.title}"...`,
-        variant: "success"
-      })
+    if (downloadUrl && downloadUrl !== '#' && downloadUrl !== 'null') {
+      try {
+        // Check if the URL is accessible
+        const response = await fetch(downloadUrl, { method: 'HEAD' })
+        if (!response.ok) {
+          throw new Error(`File not accessible: ${response.status}`)
+        }
+        
+        // Get file extension from URL or content type
+        const urlExtension = downloadUrl.split('.').pop()?.split('?')[0] || ''
+        const contentType = response.headers.get('content-type') || ''
+        let extension = urlExtension
+        
+        // Determine extension from content type if URL doesn't have one
+        if (!extension) {
+          if (contentType.includes('audio/mpeg') || contentType.includes('audio/mp3')) {
+            extension = 'mp3'
+          } else if (contentType.includes('audio/wav')) {
+            extension = 'wav'
+          } else if (contentType.includes('video/mp4')) {
+            extension = 'mp4'
+          } else if (contentType.includes('video/quicktime')) {
+            extension = 'mov'
+          } else if (contentType.includes('application/pdf')) {
+            extension = 'pdf'
+          } else {
+            extension = 'file'
+          }
+        }
+        
+        // Create download link
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
+        link.target = '_blank'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        toast({
+          title: "Download Started",
+          description: `Downloading "${sermon.title}"...`,
+        })
+      } catch (error) {
+        console.error('Download error:', error)
+        toast({
+          title: "Download Error",
+          description: error instanceof Error ? error.message : "Failed to download file. Please try again.",
+          variant: "destructive"
+        })
+      }
     } else {
       toast({
         title: "Download Not Available",

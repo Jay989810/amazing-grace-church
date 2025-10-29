@@ -92,7 +92,20 @@ export default function GalleryPage() {
   })
 
   const getImageUrl = (image: GalleryImage) => image.imageUrl || image.url || ''
-  const getImageTitle = (image: GalleryImage) => image.title || image.originalName || 'Untitled'
+  const getImageTitle = (image: GalleryImage) => {
+    // Use title if available, otherwise clean up the original name
+    if (image.title && image.title !== 'Untitled') {
+      return image.title
+    }
+    if (image.originalName) {
+      // Remove file extension and clean up the name
+      return image.originalName
+        .replace(/\.[^/.]+$/, '') // Remove file extension
+        .replace(/[_-]/g, ' ') // Replace underscores and dashes with spaces
+        .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize first letter of each word
+    }
+    return 'Untitled'
+  }
   const getImageDate = (image: GalleryImage) => image.date || image.uploadedAt || ''
 
 
