@@ -35,6 +35,11 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const { title, speaker, date, category, description, audioUrl, videoUrl, notesUrl, thumbnail, duration } = body
+    
+    // Support both camelCase (from API) and snake_case (from admin form)
+    const audio_url = audioUrl || body.audio_url
+    const video_url = videoUrl || body.video_url
+    const notes_url = notesUrl || body.notes_url
 
     const sermonsCollection = await getCollection('sermons')
     const now = new Date().toISOString()
@@ -45,9 +50,9 @@ export async function POST(request: NextRequest) {
       date,
       category,
       description,
-      audio_url: audioUrl,
-      video_url: videoUrl,
-      notes_url: notesUrl,
+      audio_url: audio_url,
+      video_url: video_url,
+      notes_url: notes_url,
       thumbnail,
       duration,
       created_at: now,
