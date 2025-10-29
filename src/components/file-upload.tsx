@@ -132,18 +132,52 @@ export function FileUpload({
       console.log('Upload to S3 successful, confirming...')
       
       // Step 3: Confirm upload completion
-      // Use dedicated confirmation endpoint
-      const confirmResponse = await fetch('/api/upload/confirm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fileId: presignedData.fileId,
-          type,
-          metadata
-        })
-      })
+      // Try multiple endpoints in order of preference
+      let confirmResponse: Response | null = null
+      let lastError: Error | null = null
+      
+      const confirmEndpoints = [
+        '/api/upload/confirm',
+        '/api/upload/presigned'
+      ]
+      
+      for (const endpoint of confirmEndpoints) {
+        try {
+          confirmResponse = await fetch(endpoint, {
+            method: endpoint === '/api/upload/confirm' ? 'POST' : 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fileId: presignedData.fileId,
+              type,
+              metadata
+            })
+          })
+          
+          // If successful, break out of loop
+          if (confirmResponse.ok) {
+            break
+          }
+          
+          // If 404, try next endpoint
+          if (confirmResponse.status === 404) {
+            console.log(`Endpoint ${endpoint} returned 404, trying next...`)
+            continue
+          }
+          
+          // For other errors, break and handle
+          break
+        } catch (error) {
+          lastError = error as Error
+          console.error(`Error calling ${endpoint}:`, error)
+          continue
+        }
+      }
+      
+      if (!confirmResponse) {
+        throw lastError || new Error('All confirmation endpoints failed')
+      }
 
       if (!confirmResponse.ok) {
         const errorData = await confirmResponse.json()
