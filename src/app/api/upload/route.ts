@@ -27,6 +27,10 @@ function getS3Client() {
 
 export async function POST(request: NextRequest) {
   try {
+    // IMPORTANT: This endpoint should NOT be used for file uploads anymore
+    // All file uploads should use /api/upload/presigned for direct S3 uploads
+    // This prevents Vercel's 4.5MB body size limit
+    
     // Check environment variables first
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
       const missingVars = []
@@ -55,35 +59,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File
-    const type = formData.get('type') as string // 'sermon', 'gallery', 'settings'
-    const metadata = formData.get('metadata') ? JSON.parse(formData.get('metadata') as string) : {}
-
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
-    }
-
-    // Check file size (100MB limit for AWS S3, but Vercel has 4.5MB limit for direct uploads)
-    const maxSize = 100 * 1024 * 1024 // 100MB
-    const vercelLimit = 4.5 * 1024 * 1024 // 4.5MB Vercel limit
-    
-    if (file.size > maxSize) {
-      return NextResponse.json({ 
-        error: 'File too large. Maximum size is 100MB.' 
-      }, { status: 413 })
-    }
-    
-    // Warn if file is close to Vercel limit - suggest using presigned URL endpoint
-    if (file.size > vercelLimit) {
-      return NextResponse.json({ 
-        error: 'File too large for direct upload',
-        message: 'Files larger than 4.5MB cannot be uploaded directly through Vercel. Please use the presigned URL endpoint for large files.',
-        suggestion: 'Use POST /api/upload/presigned to get a presigned URL for direct S3 upload',
-        fileSize: file.size,
-        limit: vercelLimit
-      }, { status: 413 })
-    }
+    // DEPRECATED: Direct file uploads are no longer supported
+    // This endpoint is kept for backward compatibility but will reject all uploads
+    // All uploads must use /api/upload/presigned for direct S3 uploads
+    return NextResponse.json({ 
+      error: 'Direct file uploads are deprecated',
+      message: 'This endpoint no longer accepts direct file uploads. Please use the presigned URL endpoint for all file uploads.',
+      solution: 'Use POST /api/upload/presigned to get a presigned URL for direct S3 upload',
+      reason: 'Vercel has a 4.5MB body size limit. All files must upload directly to S3 using presigned URLs.'
+    }, { status: 410 }) // 410 Gone - indicates the resource is no longer available
 
     // Generate unique filename
     const timestamp = Date.now()
