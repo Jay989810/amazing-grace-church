@@ -697,6 +697,7 @@ export default function AdminPage() {
         console.error('handleFileUploadComplete received undefined file')
         return
       }
+      console.log('handleFileUploadComplete received file:', file)
       setUploadedFiles(prev => [file, ...prev])
     } catch (error) {
       console.error('Error in handleFileUploadComplete:', error)
@@ -704,11 +705,22 @@ export default function AdminPage() {
   }
 
   const handleDeleteFile = async (fileId: string, fileName: string) => {
+    if (!fileId) {
+      console.error('handleDeleteFile: fileId is undefined')
+      toast({
+        title: "Delete Error",
+        description: "File ID is missing. Cannot delete file.",
+        variant: "destructive"
+      })
+      return
+    }
+
     if (!confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
       return
     }
     
     try {
+      console.log('Deleting file with ID:', fileId)
       const response = await fetch(`/api/upload?id=${fileId}`, {
         method: 'DELETE'
       })
@@ -1387,7 +1399,11 @@ export default function AdminPage() {
                                 <Button
                                   size="sm"
                                   variant="destructive"
-                                  onClick={() => handleDeleteFile(file.id, file.originalName)}
+                                  onClick={() => {
+                                    console.log('Delete button clicked for file:', file)
+                                    console.log('File ID:', file.id)
+                                    handleDeleteFile(file.id, file.originalName)
+                                  }}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
