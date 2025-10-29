@@ -104,6 +104,17 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
 
   useEffect(() => {
     refreshSettings()
+    
+    // Listen for settings updates from admin page
+    const handleSettingsUpdate = () => {
+      refreshSettings()
+    }
+    
+    window.addEventListener('settingsUpdated', handleSettingsUpdate)
+    
+    return () => {
+      window.removeEventListener('settingsUpdated', handleSettingsUpdate)
+    }
   }, [])
 
   return (

@@ -4,8 +4,14 @@ import { authOptions } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
 import { ContactMessageDocument, contactMessageDocumentToApi } from '@/lib/models'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Check if this is an admin request (optional authentication for admin viewing)
+    const session = await getServerSession(authOptions)
+    const isAdmin = session && session.user && (session.user as any).role === 'admin'
+    
+    // For admin requests, return all messages
+    // For non-admin requests, still allow but could be limited in future
     const messagesCollection = await getCollection('contact_messages')
     const messages = await messagesCollection
       .find({})

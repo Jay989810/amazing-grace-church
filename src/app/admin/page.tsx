@@ -52,7 +52,11 @@ interface ContactMessage {
   id: string
   name: string
   email: string
+  phone?: string
+  subject?: string
   message: string
+  date?: string
+  status?: 'new' | 'read' | 'replied'
   created_at: string
 }
 
@@ -409,7 +413,11 @@ export default function AdminPage() {
           title: "Success",
           description: "Settings updated successfully"
         })
-        loadAllData() // Reload to get updated settings
+        await loadAllData() // Reload to get updated settings
+        
+        // Trigger a refresh of the settings provider on all pages
+        // Dispatch a custom event that SettingsProvider can listen to
+        window.dispatchEvent(new CustomEvent('settingsUpdated'))
       }
     } catch (error) {
       toast({
@@ -938,13 +946,20 @@ export default function AdminPage() {
           {activeTab === 'messages' && !isLoadingData && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Mail className="w-5 h-5 mr-2" />
-                  Contact Messages ({contactMessages.length})
-                </CardTitle>
-                <CardDescription>
-                  View and respond to contact form messages
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <Mail className="w-5 h-5 mr-2" />
+                      Contact Messages ({contactMessages.length})
+                    </CardTitle>
+                    <CardDescription>
+                      View and respond to contact form messages
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={loadAllData}>
+                    Refresh
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -952,12 +967,82 @@ export default function AdminPage() {
                     <div key={message.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <h3 className="font-semibold">{message.name}</h3>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold">{message.name}</h3>
+                            {message.status === 'new' && (
+                              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                                New
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">{message.email}</p>
+                          {message.phone && (
+                            <p className="text-sm text-muted-foreground">{message.phone}</p>
+                          )}
+                          {message.subject && (
+                            <p className="text-sm font-medium mt-2">Subject: {message.subject}</p>
+                          )}
                           <p className="mt-2">{message.message}</p>
                           <p className="text-xs text-muted-foreground mt-2">
-                            {new Date(message.created_at).toLocaleString()}
+                            {new Date(message.created_at || message.date || Date.now()).toLocaleString()}
                           </p>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch('/api/messages', {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ id: message.id, status: 'read' })
+                                })
+                                if (response.ok) {
+                                  await loadAllData()
+                                  toast({
+                                    title: "Success",
+                                    description: "Message marked as read"
+                                  })
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to update message",
+                                  variant: "destructive"
+                                })
+                              }
+                            }}
+                          >
+                            Mark as Read
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={async () => {
+                              if (!confirm('Are you sure you want to delete this message?')) return
+                              try {
+                                const response = await fetch(`/api/messages?id=${message.id}`, {
+                                  method: 'DELETE'
+                                })
+                                if (response.ok) {
+                                  await loadAllData()
+                                  toast({
+                                    title: "Success",
+                                    description: "Message deleted successfully"
+                                  })
+                                }
+                              } catch (error) {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to delete message",
+                                  variant: "destructive"
+                                })
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
