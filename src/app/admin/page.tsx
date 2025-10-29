@@ -698,7 +698,12 @@ export default function AdminPage() {
         return
       }
       console.log('handleFileUploadComplete received file:', file)
-      setUploadedFiles(prev => [file, ...prev])
+      // Normalize ID field - use id if available, otherwise _id
+      const normalizedFile = {
+        ...file,
+        id: file.id || file._id || file._id?.toString()
+      }
+      setUploadedFiles(prev => [normalizedFile, ...prev])
     } catch (error) {
       console.error('Error in handleFileUploadComplete:', error)
     }
@@ -726,10 +731,10 @@ export default function AdminPage() {
       })
       
       if (response.ok) {
-        setUploadedFiles(prev => prev.filter(f => f.id !== fileId))
+        setUploadedFiles(prev => prev.filter(f => (f.id || f._id) !== fileId))
         // Also remove from gallery images if it's a gallery image
-        if (galleryImages.some(img => img.image_url === uploadedFiles.find(f => f.id === fileId)?.url)) {
-          setGalleryImages(prev => prev.filter(img => img.image_url !== uploadedFiles.find(f => f.id === fileId)?.url))
+        if (galleryImages.some(img => img.image_url === uploadedFiles.find(f => (f.id || f._id) === fileId)?.url)) {
+          setGalleryImages(prev => prev.filter(img => img.image_url !== uploadedFiles.find(f => (f.id || f._id) === fileId)?.url))
         }
         toast({
           title: "Success",
@@ -1380,7 +1385,7 @@ export default function AdminPage() {
                     {uploadedFiles
                       .filter(file => file.type === 'gallery')
                       .map((file) => (
-                        <div key={file.id} className="border rounded-lg p-4 space-y-3">
+                        <div key={file.id || file._id} className="border rounded-lg p-4 space-y-3">
                           <div className="relative group">
                             <img
                               src={file.url}
@@ -1401,8 +1406,9 @@ export default function AdminPage() {
                                   variant="destructive"
                                   onClick={() => {
                                     console.log('Delete button clicked for file:', file)
-                                    console.log('File ID:', file.id)
-                                    handleDeleteFile(file.id, file.originalName)
+                                    const fileId = file.id || file._id || file._id?.toString()
+                                    console.log('File ID:', fileId)
+                                    handleDeleteFile(fileId, file.originalName)
                                   }}
                                 >
                                   <Trash2 className="w-4 h-4" />
