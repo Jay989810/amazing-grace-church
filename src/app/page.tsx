@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Play, Calendar, Users, MapPin, Download, Clock, Mail } from "lucide-react"
+import { Play, Calendar, Users, MapPin, Download, Clock, Mail, Headphones, Video, X } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
@@ -101,13 +101,50 @@ export default function Home() {
     })
   }
 
-  const handleWatchSermon = (sermon: Sermon) => {
-    if (sermon.video_url && sermon.video_url !== '#' && sermon.video_url !== 'null') {
-      window.open(sermon.video_url, '_blank')
+  const [playingSermon, setPlayingSermon] = useState<string | null>(null)
+
+  const getAudioUrl = (sermon: Sermon) => {
+    const url = sermon.audio_url
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+  }
+  
+  const getVideoUrl = (sermon: Sermon) => {
+    const url = sermon.video_url
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+  }
+
+  const isAudioSermon = (sermon: Sermon) => {
+    const audioUrl = getAudioUrl(sermon)
+    const videoUrl = getVideoUrl(sermon)
+    return !!audioUrl && !videoUrl
+  }
+
+  const isVideoSermon = (sermon: Sermon) => {
+    const videoUrl = getVideoUrl(sermon)
+    return !!videoUrl
+  }
+
+  const handlePlayAudio = (sermon: Sermon) => {
+    const audioUrl = getAudioUrl(sermon)
+    if (audioUrl) {
+      setPlayingSermon(sermon.id)
+    } else {
+      toast({
+        title: "Audio Not Available",
+        description: "No audio file is available for this sermon.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleWatchVideo = (sermon: Sermon) => {
+    const videoUrl = getVideoUrl(sermon)
+    if (videoUrl) {
+      setPlayingSermon(sermon.id)
     } else {
       toast({
         title: "Video Not Available",
-        description: "No video is available for this sermon.",
+        description: "No video file is available for this sermon.",
         variant: "destructive"
       })
     }
@@ -318,23 +355,93 @@ export default function Home() {
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
                       {sermon.description}
                     </p>
+                    
+                    {/* Audio Player (if audio and playing) */}
+                    {playingSermon === sermon.id && isAudioSermon(sermon) && (
+                      <div className="mb-4 p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Headphones className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Now Playing</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-auto h-6 w-6 p-0"
+                            onClick={() => setPlayingSermon(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <audio
+                          src={getAudioUrl(sermon)!}
+                          controls
+                          className="w-full"
+                          onEnded={() => setPlayingSermon(null)}
+                          onError={(e) => {
+                            console.error('Audio playback error:', e)
+                            toast({
+                              title: "Playback Error",
+                              description: "Unable to play audio. Please try downloading instead.",
+                              variant: "destructive"
+                            })
+                            setPlayingSermon(null)
+                          }}
+                          preload="metadata"
+                        />
+                      </div>
+                    )}
+                    
                     <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 hover:scale-105 transition-transform"
-                        onClick={() => handleWatchSermon(sermon)}
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        Watch
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDownloadSermon(sermon)}
-                        className="hover:scale-105 transition-transform"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      {isAudioSermon(sermon) ? (
+                        <>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 hover:scale-105 transition-transform"
+                            onClick={() => handlePlayAudio(sermon)}
+                            disabled={playingSermon === sermon.id}
+                          >
+                            <Headphones className="h-4 w-4 mr-2" />
+                            {playingSermon === sermon.id ? 'Playing...' : 'Play'}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDownloadSermon(sermon)}
+                            className="hover:scale-105 transition-transform"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : isVideoSermon(sermon) ? (
+                        <>
+                          <Button 
+                            size="sm" 
+                            className="flex-1 hover:scale-105 transition-transform"
+                            onClick={() => handleWatchVideo(sermon)}
+                            disabled={playingSermon === sermon.id}
+                          >
+                            <Video className="h-4 w-4 mr-2" />
+                            {playingSermon === sermon.id ? 'Playing...' : 'Watch'}
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDownloadSermon(sermon)}
+                            className="hover:scale-105 transition-transform"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleDownloadSermon(sermon)}
+                          className="w-full hover:scale-105 transition-transform"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

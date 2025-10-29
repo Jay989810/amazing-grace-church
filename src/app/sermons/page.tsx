@@ -424,15 +424,33 @@ export default function SermonsPage() {
                             </Button>
                           </>
                         ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleDownloadSermon(sermon)}
-                            className="w-full hover:scale-105 transition-transform"
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download Notes
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDownloadSermon(sermon)}
+                              className="flex-1 hover:scale-105 transition-transform"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </Button>
+                            {sermon.notes_url && getNotesUrl(sermon) && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  const notesUrl = getNotesUrl(sermon)
+                                  if (notesUrl) {
+                                    window.open(notesUrl, '_blank')
+                                  }
+                                }}
+                                className="hover:scale-105 transition-transform"
+                              >
+                                <Download className="h-4 w-4 mr-2" />
+                                Notes
+                              </Button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </CardContent>
