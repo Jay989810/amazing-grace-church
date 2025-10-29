@@ -59,28 +59,12 @@ export default function SermonsPage() {
 
   const getAudioUrl = (sermon: Sermon) => {
     const url = sermon.audioUrl || sermon.audio_url
-    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
-      // Convert S3 URL to proxy URL if needed
-      if (url.includes('amazing-grace-church.s3.eu-north-1.amazonaws.com')) {
-        const s3Path = url.split('amazing-grace-church.s3.eu-north-1.amazonaws.com/')[1]
-        return `/api/media/${s3Path}`
-      }
-      return url
-    }
-    return null
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
   
   const getVideoUrl = (sermon: Sermon) => {
     const url = sermon.videoUrl || sermon.video_url
-    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
-      // Convert S3 URL to proxy URL if needed
-      if (url.includes('amazing-grace-church.s3.eu-north-1.amazonaws.com')) {
-        const s3Path = url.split('amazing-grace-church.s3.eu-north-1.amazonaws.com/')[1]
-        return `/api/media/${s3Path}`
-      }
-      return url
-    }
-    return null
+    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
   
   const getNotesUrl = (sermon: Sermon) => {
@@ -120,15 +104,8 @@ export default function SermonsPage() {
     
     if (downloadUrl) {
       try {
-        // Convert S3 URL to proxy URL if needed
-        let proxyUrl = downloadUrl
-        if (downloadUrl.includes('amazing-grace-church.s3.eu-north-1.amazonaws.com')) {
-          const s3Path = downloadUrl.split('amazing-grace-church.s3.eu-north-1.amazonaws.com/')[1]
-          proxyUrl = `/api/media/${s3Path}`
-        }
-        
         // Check if the URL is accessible
-        const response = await fetch(proxyUrl, { method: 'HEAD' })
+        const response = await fetch(downloadUrl, { method: 'HEAD' })
         if (!response.ok) {
           throw new Error(`File not accessible: ${response.status}`)
         }
@@ -157,7 +134,7 @@ export default function SermonsPage() {
         
         // Create download link
         const link = document.createElement('a')
-        link.href = proxyUrl
+        link.href = downloadUrl
         link.download = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
         link.target = '_blank'
         document.body.appendChild(link)

@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
     // Generate presigned URL valid for 1 hour
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
 
-    // Generate public URL (use proxy for better CORS support)
-    const publicUrl = `${process.env.NEXTAUTH_URL || 'https://amazing-graceapp.vercel.app'}/api/media/${key}`
+    // Generate public URL (using eu-north-1 region)
+    const publicUrl = `https://${process.env.AWS_S3_BUCKET}.s3.eu-north-1.amazonaws.com/${key}`
 
     // Save file metadata to database (will be updated after successful upload)
     const filesCollection = await getCollection('uploaded_files')
