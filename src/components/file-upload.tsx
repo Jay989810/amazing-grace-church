@@ -100,17 +100,32 @@ export function FileUpload({
       console.log('Got presigned URL, uploading to S3...')
       
       // Step 2: Upload directly to S3 using presigned URL
-      const uploadResponse = await fetch(presignedData.presignedUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type,
-        },
-        body: file
-      })
+      let uploadResponse: Response
+      try {
+        uploadResponse = await fetch(presignedData.presignedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type,
+          },
+          body: file
+        })
+      } catch (fetchError) {
+        // CORS errors often result in TypeError: Failed to fetch
+        if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
+          throw new Error('CORS Error: S3 bucket needs CORS configuration. Please configure your S3 bucket to allow requests from your domain. See S3_CORS_SETUP.md for instructions.')
+        }
+        throw fetchError
+      }
 
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text()
         console.error('S3 upload error:', errorText)
+        
+        // Check for CORS errors specifically
+        if (uploadResponse.status === 0 || errorText.includes('CORS') || errorText.includes('Access-Control')) {
+          throw new Error('CORS Error: S3 bucket needs CORS configuration. Please configure your S3 bucket to allow requests from your domain. See S3_CORS_SETUP.md for instructions.')
+        }
+        
         throw new Error(`Failed to upload file to S3: ${uploadResponse.status} ${uploadResponse.statusText}`)
       }
 
