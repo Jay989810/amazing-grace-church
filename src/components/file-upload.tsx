@@ -30,7 +30,7 @@ export function FileUpload({
   type, 
   onUploadComplete, 
   accept = "*/*", 
-  maxSize = 50, 
+  maxSize = 4, 
   multiple = false,
   className = ""
 }: FileUploadProps) {

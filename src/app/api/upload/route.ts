@@ -25,8 +25,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    await ensureUploadDirs()
-    
     const formData = await request.formData()
     const file = formData.get('file') as File
     const type = formData.get('type') as string // 'sermon', 'gallery', 'settings'
@@ -34,6 +32,14 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
+    }
+
+    // Check file size (4MB limit for Vercel)
+    const maxSize = 4 * 1024 * 1024 // 4MB
+    if (file.size > maxSize) {
+      return NextResponse.json({ 
+        error: 'File too large. Maximum size is 4MB.' 
+      }, { status: 413 })
     }
 
     const bytes = await file.arrayBuffer()
@@ -44,23 +50,23 @@ export async function POST(request: NextRequest) {
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `${timestamp}_${originalName}`
     
-    let uploadPath = ''
+    // For Vercel, we'll store files in a cloud service or use base64
+    // For now, let's use a placeholder URL and store the file data in MongoDB
     let publicUrl = ''
     
     if (type === 'sermon') {
-      uploadPath = join(process.cwd(), 'public', 'uploads', 'sermons', filename)
       publicUrl = `/uploads/sermons/${filename}`
     } else if (type === 'gallery') {
-      uploadPath = join(process.cwd(), 'public', 'uploads', 'gallery', filename)
       publicUrl = `/uploads/gallery/${filename}`
     } else if (type === 'settings') {
-      uploadPath = join(process.cwd(), 'public', 'uploads', 'settings', filename)
       publicUrl = `/uploads/settings/${filename}`
     } else {
       return NextResponse.json({ error: 'Invalid upload type' }, { status: 400 })
     }
 
-    await writeFile(uploadPath, buffer)
+    // In production, you should use a cloud storage service like AWS S3, Cloudinary, or Vercel Blob
+    // For now, we'll store the file data as base64 in MongoDB (not recommended for large files)
+    const base64Data = buffer.toString('base64')
 
     // Save file metadata to database
     const filesCollection = await getCollection('uploaded_files')
@@ -71,6 +77,7 @@ export async function POST(request: NextRequest) {
       size: file.size,
       mimeType: file.type,
       url: publicUrl,
+      data: base64Data, // Store file data as base64
       metadata,
       uploadedBy: session.user.email,
       uploadedAt: new Date().toISOString()
@@ -82,7 +89,8 @@ export async function POST(request: NextRequest) {
       success: true,
       file: {
         id: result.insertedId.toString(),
-        ...fileDoc
+        ...fileDoc,
+        data: undefined // Don't send the base64 data back to client
       }
     })
 
