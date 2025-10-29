@@ -63,19 +63,31 @@ export default function SermonsPage() {
 
   const getAudioUrl = (sermon: Sermon) => {
     const url = sermon.audioUrl || sermon.audio_url
+    console.log('getAudioUrl for sermon:', sermon.id, 'URL:', url)
     // Vercel Blob URLs work directly, no conversion needed
-    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
+      return url
+    }
+    return null
   }
   
   const getVideoUrl = (sermon: Sermon) => {
     const url = sermon.videoUrl || sermon.video_url
+    console.log('getVideoUrl for sermon:', sermon.id, 'URL:', url)
     // Vercel Blob URLs work directly, no conversion needed
-    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
+      return url
+    }
+    return null
   }
   
   const getNotesUrl = (sermon: Sermon) => {
     const url = sermon.notesUrl || sermon.notes_url
-    return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
+    console.log('getNotesUrl for sermon:', sermon.id, 'URL:', url)
+    if (url && url !== '#' && url.trim() !== '' && url !== 'null') {
+      return url
+    }
+    return null
   }
 
   const handlePlayAudio = (sermon: Sermon) => {
@@ -105,8 +117,15 @@ export default function SermonsPage() {
   }
 
   const handleDownloadSermon = async (sermon: Sermon) => {
+    console.log('handleDownloadSermon called for sermon:', sermon)
+    console.log('Sermon audioUrl:', sermon.audioUrl)
+    console.log('Sermon audio_url:', sermon.audio_url)
+    console.log('Sermon videoUrl:', sermon.videoUrl)
+    console.log('Sermon video_url:', sermon.video_url)
+    
     // Try audio first, then video, then notes
     const downloadUrl = getAudioUrl(sermon) || getVideoUrl(sermon) || getNotesUrl(sermon)
+    console.log('Final download URL:', downloadUrl)
     
     if (downloadUrl) {
       try {
