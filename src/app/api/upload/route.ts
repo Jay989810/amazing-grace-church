@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
-import { put, del } from '@vercel/blob'
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+
+// Initialize S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    // Check file size (100MB limit for Vercel Blob)
+    // Check file size (100MB limit for AWS S3)
     const maxSize = 100 * 1024 * 1024 // 100MB
     if (file.size > maxSize) {
       return NextResponse.json({ 
@@ -33,11 +42,25 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const originalName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
     const filename = `${timestamp}_${originalName}`
+    const key = `amazing-grace-church/${type}/${filename}`
     
-    // Upload to Vercel Blob
-    const blob = await put(`${type}/${filename}`, file, {
-      access: 'public',
+    // Convert file to buffer
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+    
+    // Upload to AWS S3
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET!,
+      Key: key,
+      Body: buffer,
+      ContentType: file.type,
+      ACL: 'public-read', // Make file publicly accessible
     })
+
+    await s3Client.send(command)
+    
+    // Generate public URL
+    const publicUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`
 
     // Save file metadata to database
     const filesCollection = await getCollection('uploaded_files')
@@ -47,7 +70,8 @@ export async function POST(request: NextRequest) {
       type,
       size: file.size,
       mimeType: file.type,
-      url: blob.url, // Vercel Blob URL
+      url: publicUrl, // AWS S3 URL
+      s3Key: key, // Store S3 key for deletion
       metadata,
       uploadedBy: session.user.email,
       uploadedAt: new Date().toISOString()
@@ -114,11 +138,17 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 })
     }
 
-    // Delete file from Vercel Blob
-    try {
-      await del(file.url)
-    } catch (blobError) {
-      console.warn('Could not delete file from Vercel Blob:', blobError)
+    // Delete file from AWS S3
+    if (file.s3Key) {
+      try {
+        const deleteCommand = new DeleteObjectCommand({
+          Bucket: process.env.AWS_S3_BUCKET!,
+          Key: file.s3Key,
+        })
+        await s3Client.send(deleteCommand)
+      } catch (s3Error) {
+        console.warn('Could not delete file from S3:', s3Error)
+      }
     }
 
     // Delete from database
