@@ -1,10 +1,18 @@
 import { MongoClient, Db } from 'mongodb'
+import { config } from 'dotenv'
+
+// Load environment variables - try .env.local first (for local dev), then .env (for Vercel)
+// In production, Vercel sets these as environment variables, so dotenv won't override them
+if (process.env.NODE_ENV !== 'production') {
+  config({ path: '.env.local' })
+  config({ path: '.env' })
+}
 
 // Check for MongoDB URI in multiple possible environment variable names
 const mongoUri = process.env.MONGODB_URI || process.env.MONGO_URI
 
 if (!mongoUri) {
-  throw new Error('Please add your MongoDB URI to .env.local as MONGODB_URI or MONGO_URI')
+  throw new Error('Please add your MongoDB URI to .env.local (local) or set MONGODB_URI in Vercel environment variables')
 }
 
 const uri = mongoUri

@@ -74,7 +74,7 @@ export default function ContactPage() {
   const handleVisitUs = () => {
     toast({
       title: "Service Times",
-      description: "Sunday: 8:00 AM & 10:00 AM, Wednesday: 6:00 PM, Friday: 6:00 PM",
+      description: "Sunday Service: 8AM – 10AM, Monday Bible Study: 5PM, Wednesday Mid-Week Service: 5PM – 6PM",
     })
   }
 

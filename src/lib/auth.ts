@@ -39,6 +39,7 @@ export const authOptions: NextAuthOptions = {
 
           // Secure password check using bcrypt
           const isValidPassword = await bcrypt.compare(credentials.password, user.password)
+          
           if (isValidPassword) {
             return {
               id: user._id?.toString() || '',
@@ -76,15 +77,19 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as any).role
+        token.id = user.id
       }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.sub || ''
+        session.user.id = token.sub || token.id || ''
         session.user.role = token.role as string
       }
       return session
     }
+  },
+  pages: {
+    signIn: '/admin'
   }
 }

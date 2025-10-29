@@ -43,19 +43,19 @@ export function Footer() {
 
           {/* Service Times */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Service Times</h3>
+            <h3 className="text-lg font-semibold">Service Schedule</h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>Sunday Service: 8:00 AM & 10:00 AM</span>
+                <span>Sunday Service: 8AM – 10AM</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>Mid-week Service: Wednesday 6:00 PM</span>
+                <span>Monday Bible Study: 5PM</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="h-4 w-4" />
-                <span>Bible Study: Friday 6:00 PM</span>
+                <span>Wednesday Mid-Week Service: 5PM – 6PM</span>
               </div>
             </div>
           </div>

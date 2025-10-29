@@ -44,8 +44,8 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
     loadSettings()
   }, [])
 
-  // If image fails to load, show the designed logo
-  if (imageError || !settings.heroImage) {
+  // If image fails to load, show the designed logo as fallback
+  if (imageError) {
     return (
       <div className={`${sizeClasses[size]} ${className}`}>
         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full border-4 border-yellow-300 shadow-lg">
@@ -76,7 +76,7 @@ export function ChurchLogo({ className = "", size = "md" }: LogoProps) {
   return (
     <div className={`${sizeClasses[size]} ${className}`}>
       <Image
-        src={settings.heroImage || "/church-logo.svg"}
+        src={settings.heroImage || "/church-logo.png"}
         alt={`${settings.churchName || "Amazing Grace Baptist Church"} Logo`}
         width={160}
         height={160}

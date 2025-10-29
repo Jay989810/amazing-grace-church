@@ -1,5 +1,10 @@
 import bcrypt from 'bcryptjs'
+import { config } from 'dotenv'
 import { getCollection } from '../src/lib/mongodb'
+
+// Load environment variables - try .env.local first (for local dev), then .env (for Vercel)
+config({ path: '.env.local' })
+config({ path: '.env' })
 
 async function createAdminUser() {
   try {

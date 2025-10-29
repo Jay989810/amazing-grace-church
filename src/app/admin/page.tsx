@@ -191,6 +191,11 @@ export default function AdminPage() {
       
       if (result?.error) {
         setError('Invalid credentials. Please try again.')
+      } else if (result?.ok) {
+        // The session will be updated automatically by NextAuth
+        setError('') // Clear any previous errors
+      } else {
+        setError('Sign in failed. Please try again.')
       }
     } catch (error) {
       setError('An error occurred. Please try again.')

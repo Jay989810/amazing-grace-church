@@ -147,27 +147,27 @@ export default function Home() {
                 <CardTitle>Sunday Service</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold text-primary">8:00 AM & 10:00 AM</p>
+                <p className="text-lg font-semibold text-primary">8AM – 10AM</p>
                 <p className="text-muted-foreground">Main Sanctuary</p>
               </CardContent>
             </Card>
             <Card className="text-center">
               <CardHeader>
                 <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
-                <CardTitle>Mid-week Service</CardTitle>
+                <CardTitle>Wednesday Mid-Week Service</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold text-primary">Wednesday 6:00 PM</p>
+                <p className="text-lg font-semibold text-primary">5PM – 6PM</p>
                 <p className="text-muted-foreground">Main Sanctuary</p>
               </CardContent>
             </Card>
             <Card className="text-center">
               <CardHeader>
                 <Clock className="h-8 w-8 text-primary mx-auto mb-2" />
-                <CardTitle>Bible Study</CardTitle>
+                <CardTitle>Monday Bible Study</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-lg font-semibold text-primary">Friday 6:00 PM</p>
+                <p className="text-lg font-semibold text-primary">5PM</p>
                 <p className="text-muted-foreground">Fellowship Hall</p>
               </CardContent>
             </Card>
