@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Play, Download, Calendar, User, Filter, Search, Mail } from "lucide-react"
+import { Play, Download, Calendar, User, Filter, Search, Mail, Headphones, Video, X } from "lucide-react"
 import { formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
@@ -15,11 +15,15 @@ interface Sermon {
   date: string
   category: string
   description: string
-  audio_url: string
-  video_url: string
-  notes_url: string
-  duration: string
-  thumbnail: string
+  audioUrl?: string
+  videoUrl?: string
+  notesUrl?: string
+  duration?: string
+  thumbnail?: string
+  // Support both naming conventions
+  audio_url?: string
+  video_url?: string
+  notes_url?: string
 }
 
 export default function SermonsPage() {
@@ -28,6 +32,7 @@ export default function SermonsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sermons, setSermons] = useState<Sermon[]>([])
   const [loading, setLoading] = useState(true)
+  const [playingSermon, setPlayingSermon] = useState<string | null>(null)
 
   // Fetch sermons from API
   useEffect(() => {
@@ -52,16 +57,39 @@ export default function SermonsPage() {
 
   const categories = ["All", "Sunday Service", "Mid-week", "Bible Study", "Prayer Meeting", "Special Event"]
 
-  const handleWatchSermon = (sermonTitle: string) => {
-    toast({
-      title: "Opening Sermon",
-      description: `Starting video for "${sermonTitle}"...`,
-    })
+  const getAudioUrl = (sermon: Sermon) => sermon.audioUrl || sermon.audio_url
+  const getVideoUrl = (sermon: Sermon) => sermon.videoUrl || sermon.video_url
+  const getNotesUrl = (sermon: Sermon) => sermon.notesUrl || sermon.notes_url
+
+  const handlePlayAudio = (sermon: Sermon) => {
+    const audioUrl = getAudioUrl(sermon)
+    if (audioUrl && audioUrl !== '#') {
+      setPlayingSermon(sermon.id)
+    } else {
+      toast({
+        title: "Audio Not Available",
+        description: "No audio file is available for this sermon.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleWatchVideo = (sermon: Sermon) => {
+    const videoUrl = getVideoUrl(sermon)
+    if (videoUrl && videoUrl !== '#') {
+      setPlayingSermon(sermon.id)
+    } else {
+      toast({
+        title: "Video Not Available",
+        description: "No video file is available for this sermon.",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleDownloadSermon = (sermon: Sermon) => {
     // Try audio first, then video, then notes
-    const downloadUrl = sermon.audio_url || sermon.video_url || sermon.notes_url
+    const downloadUrl = getAudioUrl(sermon) || getVideoUrl(sermon) || getNotesUrl(sermon)
     
     if (downloadUrl && downloadUrl !== '#') {
       // Create a temporary link to trigger download
@@ -84,6 +112,17 @@ export default function SermonsPage() {
         variant: "destructive"
       })
     }
+  }
+
+  const isAudioSermon = (sermon: Sermon) => {
+    const audioUrl = getAudioUrl(sermon)
+    const videoUrl = getVideoUrl(sermon)
+    return audioUrl && audioUrl !== '#' && (!videoUrl || videoUrl === '#')
+  }
+
+  const isVideoSermon = (sermon: Sermon) => {
+    const videoUrl = getVideoUrl(sermon)
+    return videoUrl && videoUrl !== '#'
   }
 
   const handleSubscribeToSermons = () => {
@@ -180,58 +219,156 @@ export default function SermonsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSermons.map((sermon) => (
-                <Card key={sermon.id} className="overflow-hidden">
-                  <div className="aspect-video bg-muted relative">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Button size="lg" className="rounded-full">
-                        <Play className="h-6 w-6" />
-                      </Button>
+              {filteredSermons.map((sermon) => {
+                const isAudio = isAudioSermon(sermon)
+                const isVideo = isVideoSermon(sermon)
+                const isPlaying = playingSermon === sermon.id
+                
+                return (
+                  <Card key={sermon.id} className="overflow-hidden">
+                    {/* Thumbnail or Video Player */}
+                    <div className="aspect-video bg-muted relative">
+                      {isPlaying && isVideo ? (
+                        <>
+                          <video
+                            src={getVideoUrl(sermon)!}
+                            controls
+                            className="w-full h-full object-cover"
+                            onEnded={() => setPlayingSermon(null)}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 bg-black/70 text-white hover:bg-black/90"
+                            onClick={() => setPlayingSermon(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : sermon.thumbnail && sermon.thumbnail !== '#' ? (
+                        <img
+                          src={sermon.thumbnail}
+                          alt={sermon.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
+                          {isAudio ? (
+                            <Headphones className="h-12 w-12 text-primary" />
+                          ) : isVideo ? (
+                            <Video className="h-12 w-12 text-primary" />
+                          ) : (
+                            <Play className="h-12 w-12 text-primary" />
+                          )}
+                        </div>
+                      )}
+                      {sermon.duration && (
+                        <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                          {sermon.duration}
+                        </div>
+                      )}
                     </div>
-                    <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
-                      {sermon.duration}
-                    </div>
-                  </div>
-                  <CardHeader>
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
-                        {sermon.category}
-                      </span>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                        {formatDate(sermon.date)}
-                      </span>
-                    </div>
-                    <CardTitle className="text-lg line-clamp-2 mt-2">{sermon.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-2 mt-1">
-                      <User className="h-4 w-4 flex-shrink-0" />
-                      <span className="truncate">{sermon.speaker}</span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-                      {sermon.description}
-                    </p>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button 
-                        size="sm" 
-                        className="flex-1 min-w-[120px] hover:scale-105 transition-transform"
-                        onClick={() => handleWatchSermon(sermon.title)}
-                      >
-                        <Play className="h-4 w-4 mr-2" />
-                        Watch
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDownloadSermon(sermon)}
-                        className="hover:scale-105 transition-transform"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    
+                    {/* Audio Player (if audio and playing) */}
+                    {isPlaying && isAudio && (
+                      <div className="p-4 bg-muted border-b">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Headphones className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">Now Playing</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-auto h-6 w-6 p-0"
+                            onClick={() => setPlayingSermon(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <audio
+                          src={getAudioUrl(sermon)!}
+                          controls
+                          className="w-full"
+                          onEnded={() => setPlayingSermon(null)}
+                        />
+                      </div>
+                    )}
+                    
+                    <CardHeader>
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
+                          {sermon.category}
+                        </span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDate(sermon.date)}
+                        </span>
+                      </div>
+                      <CardTitle className="text-lg line-clamp-2 mt-2">{sermon.title}</CardTitle>
+                      <CardDescription className="flex items-center gap-2 mt-1">
+                        <User className="h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">{sermon.speaker}</span>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                        {sermon.description}
+                      </p>
+                      <div className="flex gap-2 flex-wrap">
+                        {isAudio ? (
+                          <>
+                            <Button 
+                              size="sm" 
+                              className="flex-1 min-w-[120px] hover:scale-105 transition-transform"
+                              onClick={() => handlePlayAudio(sermon)}
+                              disabled={isPlaying}
+                            >
+                              <Headphones className="h-4 w-4 mr-2" />
+                              {isPlaying ? 'Playing...' : 'Play'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDownloadSermon(sermon)}
+                              className="hover:scale-105 transition-transform"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : isVideo ? (
+                          <>
+                            <Button 
+                              size="sm" 
+                              className="flex-1 min-w-[120px] hover:scale-105 transition-transform"
+                              onClick={() => handleWatchVideo(sermon)}
+                              disabled={isPlaying}
+                            >
+                              <Video className="h-4 w-4 mr-2" />
+                              {isPlaying ? 'Playing...' : 'Watch'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDownloadSermon(sermon)}
+                              className="hover:scale-105 transition-transform"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDownloadSermon(sermon)}
+                            className="w-full hover:scale-105 transition-transform"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download Notes
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>

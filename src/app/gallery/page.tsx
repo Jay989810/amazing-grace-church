@@ -11,19 +11,22 @@ import { useSettings } from "@/components/settings-provider"
 
 interface GalleryImage {
   id: string
-  originalName: string
-  filename: string
-  type: string
-  size: number
-  mimeType: string
-  url: string
-  uploadedAt: string
+  title: string
+  description?: string
+  imageUrl: string
+  album?: string
+  photographer?: string
+  date?: string
+  // Support upload API format too
+  originalName?: string
+  url?: string
+  uploadedAt?: string
 }
 
 export default function GalleryPage() {
   const { toast } = useToast()
   const { settings } = useSettings()
-  const [selectedAlbum, setSelectedAlbum] = useState("All")
+  const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
@@ -33,7 +36,7 @@ export default function GalleryPage() {
   useEffect(() => {
     const fetchGalleryImages = async () => {
       try {
-        const response = await fetch('/api/upload?type=gallery')
+        const response = await fetch('/api/gallery')
         if (response.ok) {
           const data = await response.json()
           setGalleryImages(data)
@@ -58,19 +61,40 @@ export default function GalleryPage() {
     })
   }
 
+  // Get unique categories from gallery images
+  const categories = ["All", "Bible Study", "Church Event", "Sunday Service", "Youth Program", "Community Outreach", "Prayer Meeting", "Other"]
+  
+  // Extract unique albums from images
+  const uniqueAlbums = Array.from(new Set(
+    galleryImages
+      .map(img => img.album)
+      .filter(Boolean)
+      .map(album => album as string)
+  ))
+
+  // Combine predefined categories with unique albums from database
+  const allCategories = [...categories, ...uniqueAlbums.filter(album => !categories.includes(album))]
+
   const filteredImages = galleryImages.filter(image => {
-    const matchesAlbum = selectedAlbum === "All" || image.originalName.toLowerCase().includes(selectedAlbum.toLowerCase())
-    const matchesSearch = image.originalName.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesAlbum && matchesSearch
+    const imageTitle = image.title || image.originalName || ''
+    const imageAlbum = image.album || ''
+    const imageDescription = image.description || ''
+    
+    const matchesCategory = selectedCategory === "All" || 
+      imageAlbum.toLowerCase() === selectedCategory.toLowerCase() ||
+      imageTitle.toLowerCase().includes(selectedCategory.toLowerCase())
+    
+    const matchesSearch = imageTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      imageDescription.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      imageAlbum.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    return matchesCategory && matchesSearch
   })
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
+  const getImageUrl = (image: GalleryImage) => image.imageUrl || image.url || ''
+  const getImageTitle = (image: GalleryImage) => image.title || image.originalName || 'Untitled'
+  const getImageDate = (image: GalleryImage) => image.date || image.uploadedAt || ''
+
 
   if (loading) {
     return (
@@ -122,17 +146,29 @@ export default function GalleryPage() {
               />
             </div>
 
-            {/* Album Filter */}
-            <div className="flex gap-2 flex-wrap">
-              <Button
-                variant={selectedAlbum === "All" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedAlbum("All")}
-                className="flex items-center gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                All Photos
-              </Button>
+            {/* Category Filter */}
+            <div className="flex gap-2 flex-wrap justify-center md:justify-start">
+              {allCategories.slice(0, 8).map((category) => (
+                <Button
+                  key={category}
+                  variant={selectedCategory === category ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category)}
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  <Filter className="h-4 w-4" />
+                  {category}
+                </Button>
+              ))}
+              {allCategories.length > 8 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  +{allCategories.length - 8} more
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -158,41 +194,52 @@ export default function GalleryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredImages.map((image) => (
-                <Card key={image.id} className="overflow-hidden group cursor-pointer" onClick={() => setSelectedImage(image)}>
-                  <div className="aspect-video bg-muted relative overflow-hidden">
-                    <img
-                      src={image.url}
-                      alt={image.originalName}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                      <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
-                      Gallery
-                    </div>
-                  </div>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg line-clamp-2">{image.originalName}</CardTitle>
-                    <CardDescription className="line-clamp-2">
-                      Uploaded by admin
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(image.uploadedAt)}
+              {filteredImages.map((image) => {
+                const imageUrl = getImageUrl(image)
+                const imageTitle = getImageTitle(image)
+                const imageDate = getImageDate(image)
+                
+                return (
+                  <Card key={image.id} className="overflow-hidden group cursor-pointer" onClick={() => setSelectedImage(image)}>
+                    <div className="aspect-video bg-muted relative overflow-hidden">
+                      <img
+                        src={imageUrl}
+                        alt={imageTitle}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                        <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        {formatFileSize(image.size)}
-                      </div>
+                      {image.album && (
+                        <div className="absolute top-2 left-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs font-medium">
+                          {image.album}
+                        </div>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg line-clamp-2">{imageTitle}</CardTitle>
+                      {image.description && (
+                        <CardDescription className="line-clamp-2">
+                          {image.description}
+                        </CardDescription>
+                      )}
+                      {image.photographer && (
+                        <CardDescription className="line-clamp-1 mt-1">
+                          Photo by {image.photographer}
+                        </CardDescription>
+                      )}
+                    </CardHeader>
+                    {imageDate && (
+                      <CardContent className="pt-0">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(imageDate)}
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                )
+              })}
             </div>
           )}
         </div>
@@ -204,22 +251,25 @@ export default function GalleryPage() {
           <div className="max-w-4xl max-h-full bg-background rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="aspect-video bg-muted relative">
               <img
-                src={selectedImage.url}
-                alt={selectedImage.originalName}
+                src={getImageUrl(selectedImage)}
+                alt={getImageTitle(selectedImage)}
                 className="w-full h-full object-contain"
               />
             </div>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-semibold">{selectedImage.originalName}</h3>
+                <h3 className="text-xl font-semibold">{getImageTitle(selectedImage)}</h3>
                 <Button variant="outline" size="sm" onClick={() => setSelectedImage(null)}>
                   Close
                 </Button>
               </div>
+              {selectedImage.description && (
+                <p className="text-muted-foreground mb-4">{selectedImage.description}</p>
+              )}
               <div className="space-y-2 text-sm text-muted-foreground">
-                <p>Size: {formatFileSize(selectedImage.size)}</p>
-                <p>Uploaded: {formatDate(selectedImage.uploadedAt)}</p>
-                <p>Type: {selectedImage.mimeType}</p>
+                {selectedImage.album && <p>Category: <span className="font-medium">{selectedImage.album}</span></p>}
+                {selectedImage.photographer && <p>Photographer: <span className="font-medium">{selectedImage.photographer}</span></p>}
+                {getImageDate(selectedImage) && <p>Date: {formatDate(getImageDate(selectedImage))}</p>}
               </div>
             </div>
           </div>
