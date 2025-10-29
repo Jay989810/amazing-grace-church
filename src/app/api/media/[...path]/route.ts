@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const path = params.path.join('/')
+    const resolvedParams = await params
+    const path = resolvedParams.path.join('/')
     const mediaUrl = `https://amazing-grace-church.s3.eu-north-1.amazonaws.com/${path}`
     
     // Fetch the media file from S3
@@ -64,10 +65,11 @@ export async function GET(
 
 export async function HEAD(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
-    const path = params.path.join('/')
+    const resolvedParams = await params
+    const path = resolvedParams.path.join('/')
     const mediaUrl = `https://amazing-grace-church.s3.eu-north-1.amazonaws.com/${path}`
     
     const response = await fetch(mediaUrl, { method: 'HEAD' })
