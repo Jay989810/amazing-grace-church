@@ -132,9 +132,9 @@ export function FileUpload({
       console.log('Upload to S3 successful, confirming...')
       
       // Step 3: Confirm upload completion
-      // Try presigned route first, fallback to main upload route if 404
-      let confirmResponse = await fetch('/api/upload/presigned', {
-        method: 'PUT',
+      // Use dedicated confirmation endpoint
+      const confirmResponse = await fetch('/api/upload/confirm', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -144,22 +144,6 @@ export function FileUpload({
           metadata
         })
       })
-
-      // If presigned route returns 404, try main upload route as fallback
-      if (confirmResponse.status === 404) {
-        console.log('Presigned route not found, trying main upload route...')
-        confirmResponse = await fetch('/api/upload', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            fileId: presignedData.fileId,
-            type,
-            metadata
-          })
-        })
-      }
 
       if (!confirmResponse.ok) {
         const errorData = await confirmResponse.json()
