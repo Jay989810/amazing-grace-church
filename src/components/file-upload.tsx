@@ -72,41 +72,109 @@ export function FileUpload({
     setUploading(true)
     
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('type', type)
-      if (Object.keys(metadata).length > 0) {
-        formData.append('metadata', JSON.stringify(metadata))
+      // Always use presigned URLs for direct S3 upload (bypasses Vercel 4.5MB limit)
+      console.log('Starting upload via presigned URL:', { fileName: file.name, fileSize: file.size })
+      
+      // Step 1: Get presigned URL
+      const presignedResponse = await fetch('/api/upload/presigned', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          type,
+          metadata
+        })
+      })
+
+      if (!presignedResponse.ok) {
+        const errorData = await presignedResponse.json()
+        console.error('Failed to get presigned URL:', errorData)
+        throw new Error(errorData.error || 'Failed to get upload URL')
+      }
+
+      const presignedData = await presignedResponse.json()
+      console.log('Got presigned URL, uploading to S3...')
+      
+      // Step 2: Upload directly to S3 using presigned URL
+      let uploadResponse: Response
+      try {
+        uploadResponse = await fetch(presignedData.presignedUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type,
+          },
+          body: file
+        })
+      } catch (fetchError) {
+        // CORS errors often result in TypeError: Failed to fetch
+        if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
+          throw new Error('CORS Error: S3 bucket needs CORS configuration. Please configure your S3 bucket to allow requests from your domain. See S3_CORS_SETUP.md for instructions.')
+        }
+        throw fetchError
+      }
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text()
+        console.error('S3 upload error:', errorText)
+        
+        // Check for CORS errors specifically
+        if (uploadResponse.status === 0 || errorText.includes('CORS') || errorText.includes('Access-Control')) {
+          throw new Error('CORS Error: S3 bucket needs CORS configuration. Please configure your S3 bucket to allow requests from your domain. See S3_CORS_SETUP.md for instructions.')
+        }
+        
+        throw new Error(`Failed to upload file to S3: ${uploadResponse.status} ${uploadResponse.statusText}`)
+      }
+
+      console.log('Upload to S3 successful!')
+      
+      // Step 3: Create file object directly from presigned data (skip confirmation)
+      const uploadedFile = {
+        id: presignedData.fileId,
+        originalName: file.name,
+        filename: file.name,
+        type: type || 'sermon',
+        size: file.size,
+        mimeType: file.type,
+        url: presignedData.publicUrl,
+        uploadedAt: new Date().toISOString(),
+        metadata: metadata || {}
       }
       
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
+      console.log('Upload complete:', {
+        fileName: uploadedFile.originalName,
+        fileUrl: uploadedFile.url,
+        mimeType: uploadedFile.mimeType,
+        fileSize: uploadedFile.size
       })
       
-      if (response.ok) {
-        const result = await response.json()
-        const uploadedFile = result.file
-        
-        setUploadedFiles(prev => [uploadedFile, ...prev])
-        
-        toast({
-          title: "Upload Successful",
-          description: `${file.name} uploaded successfully`
-        })
-        
-        if (onUploadComplete) {
+      setUploadedFiles(prev => [uploadedFile, ...prev])
+      
+      toast({
+        title: "Upload Successful",
+        description: `${file.name} uploaded successfully`
+      })
+      
+      // Safely call onUploadComplete with error handling
+      if (onUploadComplete) {
+        try {
           onUploadComplete(uploadedFile)
+        } catch (callbackError) {
+          console.error('Error in onUploadComplete callback:', callbackError)
+          // Don't throw - just log the error to prevent page crash
+          toast({
+            title: "Upload Successful",
+            description: "File uploaded but there was an error processing it",
+            variant: "default"
+          })
         }
-      } else {
-        const errorData = await response.json()
-        const errorMessage = errorData.message || errorData.error || 'Upload failed'
-        const errorDetails = errorData.details ? ` (${errorData.details})` : ''
-        const missingVars = errorData.missingVariables ? `\nMissing: ${errorData.missingVariables.join(', ')}` : ''
-        throw new Error(`${errorMessage}${errorDetails}${missingVars}`)
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+      console.error('Upload error:', error)
       toast({
         title: "Upload Error",
         description: errorMessage,
@@ -201,6 +269,8 @@ export function FileUpload({
               </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Max size: {maxSize}MB {type === 'gallery' ? '(Images only)' : type === 'sermon' ? '(Audio/Video only)' : ''}
+                <br />
+                <span className="text-xs">All files upload directly to S3</span>
               </p>
             </div>
             
