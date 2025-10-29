@@ -998,16 +998,26 @@ export default function AdminPage() {
                             return
                           }
                           // Auto-create sermon with the uploaded file
-                          const sermonData = {
+                          const sermonData: any = {
                             title: file.originalName.replace(/\.[^/.]+$/, ""), // Remove extension
                             speaker: 'Pastor',
                             date: new Date().toISOString().split('T')[0],
                             category: 'Sunday Service',
-                            description: `Sermon uploaded on ${new Date().toLocaleDateString()}`,
-                            audio_url: file.mimeType.startsWith('audio/') ? file.url : '',
-                            video_url: file.mimeType.startsWith('video/') ? file.url : '',
-                            thumbnail: file.mimeType.startsWith('image/') ? file.url : ''
+                            description: `Sermon uploaded on ${new Date().toLocaleDateString()}`
                           }
+                          
+                          // Only add URLs for matching file types
+                          if (file.mimeType.startsWith('audio/')) {
+                            sermonData.audio_url = file.url
+                          }
+                          if (file.mimeType.startsWith('video/')) {
+                            sermonData.video_url = file.url
+                          }
+                          if (file.mimeType.startsWith('image/')) {
+                            sermonData.thumbnail = file.url
+                          }
+                          
+                          console.log('Creating sermon with data:', sermonData)
                           
                           const response = await fetch('/api/sermons', {
                             method: 'POST',
