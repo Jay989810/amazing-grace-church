@@ -4,27 +4,42 @@ import { authOptions } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-})
+// Initialize S3 client lazily
+function getS3Client() {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    throw new Error('AWS credentials not configured')
+  }
+  
+  return new S3Client({
+    region: process.env.AWS_REGION || 'us-east-1',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  })
+}
 
 export async function POST(request: NextRequest) {
   try {
     // Check environment variables first
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
+      const missingVars = []
+      if (!process.env.AWS_ACCESS_KEY_ID) missingVars.push('AWS_ACCESS_KEY_ID')
+      if (!process.env.AWS_SECRET_ACCESS_KEY) missingVars.push('AWS_SECRET_ACCESS_KEY')
+      if (!process.env.AWS_S3_BUCKET) missingVars.push('AWS_S3_BUCKET')
+      
       console.error('Missing AWS environment variables:', {
+        missing: missingVars,
         hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
         hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
         hasBucket: !!process.env.AWS_S3_BUCKET,
-        region: process.env.AWS_REGION
+        region: process.env.AWS_REGION || 'not set'
       })
+      
       return NextResponse.json({ 
-        error: 'AWS configuration missing. Please check environment variables.' 
+        error: 'AWS configuration missing',
+        message: `Missing required environment variables: ${missingVars.join(', ')}. Please add them to Vercel environment variables.`,
+        missingVariables: missingVars
       }, { status: 500 })
     }
 
@@ -73,6 +88,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     
     // Upload to AWS S3
+    const s3Client = getS3Client()
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET!,
       Key: key,
@@ -115,9 +131,39 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('File upload error:', error)
+    
+    // Provide more detailed error information
+    let errorMessage = 'Upload failed'
+    let errorDetails = 'Unknown error'
+    
+    if (error instanceof Error) {
+      errorDetails = error.message
+      
+      // Check for specific AWS errors
+      if (error.message.includes('AWS credentials')) {
+        errorMessage = 'AWS credentials not configured'
+      } else if (error.message.includes('AccessDenied')) {
+        errorMessage = 'Access denied to S3 bucket. Check IAM permissions.'
+      } else if (error.message.includes('NoSuchBucket')) {
+        errorMessage = 'S3 bucket not found. Check bucket name.'
+      } else if (error.message.includes('InvalidAccessKeyId')) {
+        errorMessage = 'Invalid AWS access key. Check credentials.'
+      } else if (error.message.includes('SignatureDoesNotMatch')) {
+        errorMessage = 'Invalid AWS secret key. Check credentials.'
+      }
+    }
+    
     return NextResponse.json({ 
-      error: 'Upload failed', 
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage,
+      details: errorDetails,
+      // Include helpful debugging info (but not sensitive data)
+      debug: process.env.NODE_ENV === 'development' ? {
+        hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+        hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        hasBucket: !!process.env.AWS_S3_BUCKET,
+        region: process.env.AWS_REGION,
+        bucketName: process.env.AWS_S3_BUCKET,
+      } : undefined
     }, { status: 500 })
   }
 }
@@ -170,6 +216,7 @@ export async function DELETE(request: NextRequest) {
     // Delete file from AWS S3
     if (file.s3Key) {
       try {
+        const s3Client = getS3Client()
         const deleteCommand = new DeleteObjectCommand({
           Bucket: process.env.AWS_S3_BUCKET!,
           Key: file.s3Key,

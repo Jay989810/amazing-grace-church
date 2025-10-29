@@ -94,14 +94,19 @@ export function FileUpload({
           onUploadComplete(uploadedFile)
         }
       } else {
-        const error = await response.json()
-        throw new Error(error.error || 'Upload failed')
+        const errorData = await response.json()
+        const errorMessage = errorData.message || errorData.error || 'Upload failed'
+        const errorDetails = errorData.details ? ` (${errorData.details})` : ''
+        const missingVars = errorData.missingVariables ? `\nMissing: ${errorData.missingVariables.join(', ')}` : ''
+        throw new Error(`${errorMessage}${errorDetails}${missingVars}`)
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed'
       toast({
         title: "Upload Error",
-        description: error instanceof Error ? error.message : 'Upload failed',
-        variant: "destructive"
+        description: errorMessage,
+        variant: "destructive",
+        duration: 5000 // Show longer for detailed errors
       })
     } finally {
       setUploading(false)
