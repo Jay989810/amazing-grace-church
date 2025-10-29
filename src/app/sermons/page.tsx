@@ -106,42 +106,35 @@ export default function SermonsPage() {
     
     if (downloadUrl) {
       try {
-        // Check if the URL is accessible
-        const response = await fetch(downloadUrl, { method: 'HEAD' })
-        if (!response.ok) {
-          throw new Error(`File not accessible: ${response.status}`)
+        console.log('Downloading from URL:', downloadUrl)
+        
+        // Get file extension from URL
+        let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
+        
+        // If no extension, try to determine from URL path
+        if (!extension || extension.length > 5) {
+          if (downloadUrl.includes('.mp3')) extension = 'mp3'
+          else if (downloadUrl.includes('.mp4')) extension = 'mp4'
+          else if (downloadUrl.includes('.mov')) extension = 'mov'
+          else if (downloadUrl.includes('.wav')) extension = 'wav'
+          else if (downloadUrl.includes('.pdf')) extension = 'pdf'
+          else extension = 'file'
         }
         
-        // Get file extension from URL or content type
-        const urlExtension = downloadUrl.split('.').pop()?.split('?')[0] || ''
-        const contentType = response.headers.get('content-type') || ''
-        let extension = urlExtension
-        
-        // Determine extension from content type if URL doesn't have one
-        if (!extension) {
-          if (contentType.includes('audio/mpeg') || contentType.includes('audio/mp3')) {
-            extension = 'mp3'
-          } else if (contentType.includes('audio/wav')) {
-            extension = 'wav'
-          } else if (contentType.includes('video/mp4')) {
-            extension = 'mp4'
-          } else if (contentType.includes('video/quicktime')) {
-            extension = 'mov'
-          } else if (contentType.includes('application/pdf')) {
-            extension = 'pdf'
-          } else {
-            extension = 'file'
-          }
-        }
-        
-        // Create download link
+        // Create download link and trigger download
         const link = document.createElement('a')
         link.href = downloadUrl
         link.download = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
         link.target = '_blank'
+        link.rel = 'noopener noreferrer'
+        
         document.body.appendChild(link)
         link.click()
-        document.body.removeChild(link)
+        
+        // Clean up after a delay
+        setTimeout(() => {
+          document.body.removeChild(link)
+        }, 100)
         
         toast({
           title: "Download Started",
@@ -151,11 +144,12 @@ export default function SermonsPage() {
         console.error('Download error:', error)
         toast({
           title: "Download Error",
-          description: error instanceof Error ? error.message : "Failed to download file. Please try again.",
+          description: "Failed to download file. You can try right-clicking the media player and selecting 'Save As'.",
           variant: "destructive"
         })
       }
     } else {
+      console.log('No download URL available for sermon:', sermon)
       toast({
         title: "Download Not Available",
         description: "No downloadable file is available for this sermon.",
