@@ -73,6 +73,8 @@ export function FileUpload({
     
     try {
       // Always use presigned URLs for direct S3 upload (bypasses Vercel 4.5MB limit)
+      console.log('Starting upload via presigned URL:', { fileName: file.name, fileSize: file.size })
+      
       // Step 1: Get presigned URL
       const presignedResponse = await fetch('/api/upload/presigned', {
         method: 'POST',
@@ -90,10 +92,12 @@ export function FileUpload({
 
       if (!presignedResponse.ok) {
         const errorData = await presignedResponse.json()
+        console.error('Failed to get presigned URL:', errorData)
         throw new Error(errorData.error || 'Failed to get upload URL')
       }
 
       const presignedData = await presignedResponse.json()
+      console.log('Got presigned URL, uploading to S3...')
       
       // Step 2: Upload directly to S3 using presigned URL
       const uploadResponse = await fetch(presignedData.presignedUrl, {
@@ -110,6 +114,8 @@ export function FileUpload({
         throw new Error(`Failed to upload file to S3: ${uploadResponse.status} ${uploadResponse.statusText}`)
       }
 
+      console.log('Upload to S3 successful, confirming...')
+      
       // Step 3: Confirm upload completion
       const confirmResponse = await fetch('/api/upload/presigned', {
         method: 'PUT',
@@ -125,11 +131,14 @@ export function FileUpload({
 
       if (!confirmResponse.ok) {
         const errorData = await confirmResponse.json()
+        console.error('Failed to confirm upload:', errorData)
         throw new Error(errorData.error || 'Failed to confirm upload')
       }
 
       const confirmData = await confirmResponse.json()
       const uploadedFile = confirmData.file
+      
+      console.log('Upload complete:', uploadedFile)
       
       setUploadedFiles(prev => [uploadedFile, ...prev])
       
