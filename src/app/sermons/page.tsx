@@ -59,12 +59,31 @@ export default function SermonsPage() {
     })
   }
 
-  const handleDownloadSermon = (sermonTitle: string) => {
-    toast({
-      title: "Download Started",
-      description: `Downloading "${sermonTitle}"...`,
-      variant: "success"
-    })
+  const handleDownloadSermon = (sermon: Sermon) => {
+    // Try audio first, then video, then notes
+    const downloadUrl = sermon.audio_url || sermon.video_url || sermon.notes_url
+    
+    if (downloadUrl && downloadUrl !== '#') {
+      // Create a temporary link to trigger download
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = `${sermon.title} - ${sermon.speaker}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast({
+        title: "Download Started",
+        description: `Downloading "${sermon.title}"...`,
+        variant: "success"
+      })
+    } else {
+      toast({
+        title: "Download Not Available",
+        description: "No downloadable file is available for this sermon.",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleSubscribeToSermons = () => {
@@ -204,7 +223,7 @@ export default function SermonsPage() {
                       <Button 
                         size="sm" 
                         variant="outline"
-                        onClick={() => handleDownloadSermon(sermon.title)}
+                        onClick={() => handleDownloadSermon(sermon)}
                         className="hover:scale-105 transition-transform"
                       >
                         <Download className="h-4 w-4" />

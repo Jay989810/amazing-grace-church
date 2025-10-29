@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Play, Calendar, Users, MapPin, Download, Clock, Mail } from "lucide-react"
@@ -9,47 +9,85 @@ import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import { ChurchLogo } from "@/components/church-logo"
 import { useSettings } from "@/components/settings-provider"
+import { formatDate } from "@/lib/utils"
+
+interface Sermon {
+  id: string
+  title: string
+  speaker: string
+  date: string
+  category: string
+  description: string
+  audio_url: string
+  video_url: string
+  notes_url: string
+  duration: string
+  thumbnail: string
+}
+
+interface Event {
+  id: string
+  title: string
+  description: string
+  date: string
+  time: string
+  venue: string
+  type: string
+  image: string
+  registration_required: boolean
+  registration_url: string
+}
+
+interface GalleryImage {
+  id: string
+  title: string
+  description: string
+  image_url: string
+  uploaded_at: string
+}
 
 export default function Home() {
   const { toast } = useToast()
   const { settings } = useSettings()
   const [isSubscribing, setIsSubscribing] = useState(false)
+  const [recentSermons, setRecentSermons] = useState<Sermon[]>([])
+  const [recentEvents, setRecentEvents] = useState<Event[]>([])
+  const [recentGallery, setRecentGallery] = useState<GalleryImage[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Sample data - in a real app, this would come from your backend/database
-  const latestSermon = {
-    title: "Walking in Faith and Grace",
-    speaker: "Pastor John Doe",
-    date: "2024-01-21",
-    category: "Sunday Service",
-    description: "Join us as we explore the journey of faith and the amazing grace that sustains us through life's challenges.",
-    audioUrl: "#",
-    videoUrl: "#",
-    notesUrl: "#"
-  }
+  // Fetch recent data from APIs
+  useEffect(() => {
+    const fetchRecentData = async () => {
+      try {
+        // Fetch recent sermons (limit to 3)
+        const sermonsResponse = await fetch('/api/sermons')
+        if (sermonsResponse.ok) {
+          const sermons = await sermonsResponse.json()
+          setRecentSermons(sermons.slice(0, 3))
+        }
 
-  const upcomingEvents = [
-    {
-      title: "Youth Conference 2024",
-      date: "2024-02-15",
-      time: "9:00 AM",
-      venue: "Church Auditorium",
-      description: "Annual youth conference focusing on spiritual growth and community building."
-    },
-    {
-      title: "Community Outreach",
-      date: "2024-02-20",
-      time: "2:00 PM",
-      venue: "Local Community Center",
-      description: "Join us as we serve our community and share the love of Christ."
-    },
-    {
-      title: "Prayer Meeting",
-      date: "2024-02-25",
-      time: "6:00 PM",
-      venue: "Church Prayer Room",
-      description: "Weekly prayer meeting for church members and visitors."
+        // Fetch recent events (limit to 3)
+        const eventsResponse = await fetch('/api/events')
+        if (eventsResponse.ok) {
+          const events = await eventsResponse.json()
+          setRecentEvents(events.slice(0, 3))
+        }
+
+        // Fetch recent gallery images (limit to 3)
+        const galleryResponse = await fetch('/api/gallery')
+        if (galleryResponse.ok) {
+          const gallery = await galleryResponse.json()
+          setRecentGallery(gallery.slice(0, 3))
+        }
+      } catch (error) {
+        console.error('Error fetching recent data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchRecentData()
+  }, [])
 
   const handleSubscribe = async () => {
     setIsSubscribing(true)
@@ -63,27 +101,42 @@ export default function Home() {
     })
   }
 
-  const handleWatchSermon = () => {
-    toast({
-      title: "Opening Sermon",
-      description: "Redirecting to the latest sermon video...",
-    })
+  const handleWatchSermon = (sermon: Sermon) => {
+    if (sermon.video_url && sermon.video_url !== '#') {
+      window.open(sermon.video_url, '_blank')
+    } else {
+      toast({
+        title: "Video Not Available",
+        description: "No video is available for this sermon.",
+        variant: "destructive"
+      })
+    }
   }
 
-  const handleDownloadSermon = () => {
-    toast({
-      title: "Download Started",
-      description: "Your sermon download has begun.",
-      variant: "success"
-    })
+  const handleDownloadSermon = (sermon: Sermon) => {
+    const downloadUrl = sermon.audio_url || sermon.video_url || sermon.notes_url
+    
+    if (downloadUrl && downloadUrl !== '#') {
+      const link = document.createElement('a')
+      link.href = downloadUrl
+      link.download = `${sermon.title} - ${sermon.speaker}`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast({
+        title: "Download Started",
+        description: `Downloading "${sermon.title}"...`,
+        variant: "success"
+      })
+    } else {
+      toast({
+        title: "Download Not Available",
+        description: "No downloadable file is available for this sermon.",
+        variant: "destructive"
+      })
+    }
   }
-
-  const galleryImages = [
-    { src: "/api/placeholder/300/200", alt: "Sunday Service", title: "Sunday Worship" },
-    { src: "/api/placeholder/300/200", alt: "Youth Program", title: "Youth Activities" },
-    { src: "/api/placeholder/300/200", alt: "Community Outreach", title: "Community Service" },
-    { src: "/api/placeholder/300/200", alt: "Bible Study", title: "Bible Study Session" }
-  ]
 
   return (
     <div className="min-h-screen">
@@ -175,80 +228,152 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Latest Sermon */}
+      {/* Recent Sermons */}
       <section className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-primary mb-4">Latest Sermon</h2>
-            <p className="text-lg text-muted-foreground">Watch, listen, or download our latest message</p>
+            <h2 className="text-3xl font-bold text-primary mb-4">Recent Sermons</h2>
+            <p className="text-lg text-muted-foreground">Watch, listen, or download our latest messages</p>
           </div>
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl">{latestSermon.title}</CardTitle>
-                  <CardDescription className="text-lg">
-                    by {latestSermon.speaker} • {latestSermon.date} • {latestSermon.category}
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleWatchSermon}>
-                    <Play className="h-4 w-4 mr-2" />
-                    Watch
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleDownloadSermon}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground mb-4">{latestSermon.description}</p>
-              <div className="flex gap-4">
-                <Button asChild>
-                  <Link href="/sermons">View All Sermons</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/sermons">Sermon Notes</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-4">Loading sermons...</p>
+            </div>
+          ) : recentSermons.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentSermons.map((sermon) => (
+                <Card key={sermon.id} className="overflow-hidden">
+                  <div className="aspect-video bg-muted relative">
+                    {sermon.thumbnail && sermon.thumbnail !== '#' ? (
+                      <Image
+                        src={sermon.thumbnail}
+                        alt={sermon.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Play className="h-12 w-12 text-primary" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                      {sermon.duration || 'N/A'}
+                    </div>
+                  </div>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
+                        {sermon.category}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(sermon.date)}
+                      </span>
+                    </div>
+                    <CardTitle className="text-lg line-clamp-2">{sermon.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Users className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">{sermon.speaker}</span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+                      {sermon.description}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        className="flex-1 hover:scale-105 transition-transform"
+                        onClick={() => handleWatchSermon(sermon)}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Watch
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDownloadSermon(sermon)}
+                        className="hover:scale-105 transition-transform"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No sermons available yet.</p>
+            </div>
+          )}
+          <div className="text-center mt-8">
+            <Button asChild size="lg">
+              <Link href="/sermons">View All Sermons</Link>
+            </Button>
+          </div>
         </div>
       </section>
 
-      {/* Upcoming Events */}
+      {/* Recent Events */}
       <section className="py-16 bg-muted/50">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-primary mb-4">Upcoming Events</h2>
+            <h2 className="text-3xl font-bold text-primary mb-4">Recent Events</h2>
             <p className="text-lg text-muted-foreground">Join us for these special occasions</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingEvents.map((event, index) => (
-              <Card key={index}>
-                <CardHeader>
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-lg">{event.title}</CardTitle>
-                  </div>
-                  <CardDescription>
-                    {event.date} at {event.time}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span>{event.venue}</span>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-4">Loading events...</p>
+            </div>
+          ) : recentEvents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentEvents.map((event) => (
+                <Card key={event.id} className="overflow-hidden">
+                  {event.image && event.image !== '#' && (
+                    <div className="aspect-video bg-muted relative">
+                      <Image
+                        src={event.image}
+                        alt={event.title}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
-                    <p className="text-sm">{event.description}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  )}
+                  <CardHeader>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-lg">{event.title}</CardTitle>
+                    </div>
+                    <CardDescription>
+                      {formatDate(event.date)} at {event.time}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4" />
+                        <span>{event.venue}</span>
+                      </div>
+                      <p className="text-sm line-clamp-3">{event.description}</p>
+                      {event.registration_required && (
+                        <div className="pt-2">
+                          <Button size="sm" variant="outline" className="w-full">
+                            Register Now
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No events available yet.</p>
+            </div>
+          )}
           <div className="text-center mt-8">
             <Button asChild size="lg">
               <Link href="/events">View All Events</Link>
@@ -257,27 +382,53 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Gallery Preview */}
+      {/* Church Life Gallery */}
       <section className="py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-primary mb-4">Church Life</h2>
             <p className="text-lg text-muted-foreground">See what's happening in our community</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {galleryImages.map((image, index) => (
-              <Card key={index} className="overflow-hidden">
-                <div className="aspect-video bg-muted relative">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-muted-foreground">{image.title}</span>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground mt-4">Loading gallery...</p>
+            </div>
+          ) : recentGallery.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {recentGallery.map((image) => (
+                <Card key={image.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
+                  <div className="aspect-video bg-muted relative">
+                    <Image
+                      src={image.image_url}
+                      alt={image.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        <Button size="sm" variant="secondary">
+                          View
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <CardContent className="p-4">
-                  <p className="text-sm font-medium">{image.title}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  <CardContent className="p-4">
+                    <p className="text-sm font-medium line-clamp-2">{image.title}</p>
+                    {image.description && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {image.description}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No gallery images available yet.</p>
+            </div>
+          )}
           <div className="text-center mt-8">
             <Button asChild size="lg">
               <Link href="/gallery">View Full Gallery</Link>
