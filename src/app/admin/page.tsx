@@ -984,12 +984,14 @@ export default function AdminPage() {
                       multiple={false}
                       onUploadComplete={async (file) => {
                         try {
+                          console.log('onUploadComplete received file:', file)
                           if (!file) {
                             console.error('onUploadComplete received undefined file')
                             return
                           }
                           if (!file.mimeType || !file.url) {
                             console.error('onUploadComplete received invalid file object:', file)
+                            console.error('mimeType:', file.mimeType, 'url:', file.url)
                             toast({
                               title: "Upload Warning",
                               description: "File uploaded but missing required data",
