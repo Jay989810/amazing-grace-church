@@ -982,7 +982,7 @@ export default function AdminPage() {
                       accept="audio/*,video/*"
                       maxSize={100}
                       multiple={false}
-                      onUploadComplete={(file) => {
+                      onUploadComplete={async (file) => {
                         try {
                           if (!file) {
                             console.error('onUploadComplete received undefined file')
@@ -997,17 +997,40 @@ export default function AdminPage() {
                             })
                             return
                           }
-                          if (file.mimeType.startsWith('audio/')) {
-                            setSermonForm({...sermonForm, audio_url: file.url})
+                          // Auto-create sermon with the uploaded file
+                          const sermonData = {
+                            title: file.originalName.replace(/\.[^/.]+$/, ""), // Remove extension
+                            speaker: 'Pastor',
+                            date: new Date().toISOString().split('T')[0],
+                            category: 'Sunday Service',
+                            description: `Sermon uploaded on ${new Date().toLocaleDateString()}`,
+                            audio_url: file.mimeType.startsWith('audio/') ? file.url : '',
+                            video_url: file.mimeType.startsWith('video/') ? file.url : '',
+                            thumbnail: file.mimeType.startsWith('image/') ? file.url : ''
+                          }
+                          
+                          const response = await fetch('/api/sermons', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(sermonData)
+                          })
+                          
+                          if (response.ok) {
+                            const newSermon = await response.json()
+                            setSermons([newSermon, ...sermons])
                             toast({
-                              title: "Audio URL Set",
-                              description: "Audio file URL has been automatically set"
+                              title: "Sermon Created",
+                              description: "Sermon automatically created with uploaded file. You can edit it below.",
+                              variant: "success"
                             })
-                          } else if (file.mimeType.startsWith('video/')) {
-                            setSermonForm({...sermonForm, video_url: file.url})
+                          } else {
+                            setSermonForm({...sermonForm, 
+                              audio_url: file.mimeType.startsWith('audio/') ? file.url : sermonForm.audio_url,
+                              video_url: file.mimeType.startsWith('video/') ? file.url : sermonForm.video_url
+                            })
                             toast({
-                              title: "Video URL Set",
-                              description: "Video file URL has been automatically set"
+                              title: "URL Set",
+                              description: "File uploaded. Fill in the sermon details below."
                             })
                           }
                         } catch (error) {
