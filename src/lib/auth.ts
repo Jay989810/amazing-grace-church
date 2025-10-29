@@ -17,6 +17,17 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
+        // Check for default admin credentials first (before database check)
+        if (credentials.email === 'admin@amazinggracechurch.org' && credentials.password === 'grace1234') {
+          console.warn('⚠️ Using temporary admin credentials. Please run "npm run create-admin" to set up proper database user.')
+          return {
+            id: 'temp-admin',
+            email: credentials.email,
+            name: 'Administrator',
+            role: 'admin'
+          }
+        }
+
         try {
           const usersCollection = await getCollection('users')
           const user = await usersCollection.findOne({ 
@@ -24,16 +35,6 @@ export const authOptions: NextAuthOptions = {
           }) as UserDocument | null
 
           if (!user) {
-            // For development: create a temporary admin user if none exists
-            if (credentials.email === 'admin@amazinggracechurch.org' && credentials.password === 'grace1234') {
-              console.warn('⚠️ Using temporary admin credentials. Please run "npm run create-admin" to set up proper database user.')
-              return {
-                id: 'temp-admin',
-                email: credentials.email,
-                name: 'Administrator',
-                role: 'admin'
-              }
-            }
             return null
           }
 
@@ -53,7 +54,7 @@ export const authOptions: NextAuthOptions = {
         } catch (error) {
           console.error('Auth error:', error)
           
-          // For development: fallback to temporary admin if database is not available
+          // Fallback to temporary admin if database is not available
           if (credentials.email === 'admin@amazinggracechurch.org' && credentials.password === 'grace1234') {
             console.warn('⚠️ Database not available. Using temporary admin credentials.')
             console.warn('⚠️ Please set up MongoDB and run "npm run create-admin" for production.')
