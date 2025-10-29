@@ -15,6 +15,19 @@ const s3Client = new S3Client({
 
 export async function POST(request: NextRequest) {
   try {
+    // Check environment variables first
+    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_S3_BUCKET) {
+      console.error('Missing AWS environment variables:', {
+        hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
+        hasSecretKey: !!process.env.AWS_SECRET_ACCESS_KEY,
+        hasBucket: !!process.env.AWS_S3_BUCKET,
+        region: process.env.AWS_REGION
+      })
+      return NextResponse.json({ 
+        error: 'AWS configuration missing. Please check environment variables.' 
+      }, { status: 500 })
+    }
+
     const session = await getServerSession(authOptions)
     
     if (!session || !session.user || (session.user as any).role !== 'admin') {
@@ -44,6 +57,17 @@ export async function POST(request: NextRequest) {
     const filename = `${timestamp}_${originalName}`
     const key = `amazing-grace-church/${type}/${filename}`
     
+    console.log('Uploading file:', {
+      originalName: file.name,
+      filename,
+      type,
+      size: file.size,
+      mimeType: file.type,
+      key,
+      bucket: process.env.AWS_S3_BUCKET,
+      region: process.env.AWS_REGION
+    })
+    
     // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
@@ -61,6 +85,8 @@ export async function POST(request: NextRequest) {
     
     // Generate public URL
     const publicUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`
+    
+    console.log('File uploaded successfully:', publicUrl)
 
     // Save file metadata to database
     const filesCollection = await getCollection('uploaded_files')
@@ -89,7 +115,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('File upload error:', error)
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+    return NextResponse.json({ 
+      error: 'Upload failed', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }
 
