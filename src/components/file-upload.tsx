@@ -72,6 +72,86 @@ export function FileUpload({
     setUploading(true)
     
     try {
+      // Use Vercel Blob for simpler uploads - no CORS issues
+      console.log('Starting upload to Vercel Blob:', { fileName: file.name, fileSize: file.size })
+      
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('type', type)
+      formData.append('metadata', JSON.stringify(metadata))
+
+      const blobResponse = await fetch('/api/upload/blob', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!blobResponse.ok) {
+        const errorData = await blobResponse.json()
+        console.error('Failed to upload to Blob:', errorData)
+        throw new Error(errorData.error || 'Failed to upload file')
+      }
+
+      const blobData = await blobResponse.json()
+      console.log('Upload to Blob successful!')
+
+      const uploadedFile = {
+        id: blobData.file.id,
+        originalName: blobData.file.originalName,
+        filename: blobData.file.filename,
+        type: blobData.file.type,
+        size: blobData.file.size,
+        mimeType: blobData.file.mimeType,
+        url: blobData.file.url,
+        uploadedAt: blobData.file.uploadedAt,
+        metadata: blobData.file.metadata
+      }
+
+      console.log('Upload complete:', {
+        fileName: uploadedFile.originalName,
+        fileUrl: uploadedFile.url,
+        mimeType: uploadedFile.mimeType,
+        fileSize: uploadedFile.size
+      })
+
+      setUploadedFiles(prev => [uploadedFile, ...prev])
+
+      toast({
+        title: "Upload Successful",
+        description: `${file.name} uploaded successfully`
+      })
+
+      // Safely call onUploadComplete with error handling
+      if (onUploadComplete) {
+        try {
+          onUploadComplete(uploadedFile)
+        } catch (callbackError) {
+          console.error('Error in onUploadComplete callback:', callbackError)
+          toast({
+            title: "Upload Successful",
+            description: "File uploaded but there was an error processing it",
+            variant: "default"
+          })
+        }
+      }
+
+      return uploadedFile
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast({
+        title: "Upload Error",
+        description: error instanceof Error ? error.message : "Failed to upload file",
+        variant: "destructive"
+      })
+      throw error
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  /*
+  // Old S3 presigned upload code (kept for reference, but now using Vercel Blob)
+  const uploadFileOld = async (file: File) => {
+    try {
       // Always use presigned URLs for direct S3 upload (bypasses Vercel 4.5MB limit)
       console.log('Starting upload via presigned URL:', { fileName: file.name, fileSize: file.size })
       
@@ -185,6 +265,7 @@ export function FileUpload({
       setUploading(false)
     }
   }
+  */
 
   const handleFiles = useCallback((files: FileList) => {
     const fileArray = Array.from(files)
