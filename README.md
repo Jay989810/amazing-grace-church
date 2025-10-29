@@ -75,6 +75,18 @@ npm run dev
 5. **Open your browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
 
+### Setting Up Vercel Blob Storage
+
+To enable file uploads (audio, video, images):
+
+1. **Go to your Vercel project dashboard**
+2. **Navigate to Storage** → **Blob**
+3. **Enable the integration**
+4. **Copy the `BLOB_READ_WRITE_TOKEN`** from the storage settings
+5. **Add it to your environment variables** (see below)
+
+The token will be automatically available in your project after you enable the Blob integration.
+
 ### Environment Variables
 
 Create a `.env.local` file in the root directory:
@@ -96,10 +108,8 @@ SMTP_PORT="587"
 SMTP_USER="your-email@gmail.com"
 SMTP_PASS="your-app-password"
 
-# File Storage
-NEXT_PUBLIC_STORAGE_URL="your-storage-url"
-STORAGE_ACCESS_KEY="your-access-key"
-STORAGE_SECRET_KEY="your-secret-key"
+# File Storage (Vercel Blob)
+BLOB_READ_WRITE_TOKEN="your-blob-read-write-token"
 
 # Google Maps (for contact page)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="your-google-maps-api-key"
