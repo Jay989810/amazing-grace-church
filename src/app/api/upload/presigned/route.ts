@@ -64,17 +64,21 @@ export async function POST(request: NextRequest) {
 
     // Create presigned URL for PUT operation
     const s3Client = getS3Client()
-    const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET!,
-      Key: key,
-      ContentType: fileType,
-    })
+          const command = new PutObjectCommand({
+            Bucket: process.env.AWS_S3_BUCKET!,
+            Key: key,
+            ContentType: fileType,
+            Metadata: {
+              'original-filename': fileName,
+              'upload-timestamp': Date.now().toString()
+            }
+          })
 
     // Generate presigned URL valid for 1 hour
     const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 })
 
-    // Generate public URL
-    const publicUrl = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`
+    // Generate public URL (use proxy for better CORS support)
+    const publicUrl = `${process.env.NEXTAUTH_URL || 'https://amazing-graceapp.vercel.app'}/api/media/${key}`
 
     // Save file metadata to database (will be updated after successful upload)
     const filesCollection = await getCollection('uploaded_files')
