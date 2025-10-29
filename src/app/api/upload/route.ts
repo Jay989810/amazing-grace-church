@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { getCollection } from '@/lib/mongodb'
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+
+// Route segment config for larger body size
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 // Initialize S3 client lazily
 function getS3Client() {
@@ -58,11 +64,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
     }
 
-    // Check file size (100MB limit for AWS S3)
+    // Check file size (100MB limit for AWS S3, but Vercel has 4.5MB limit for direct uploads)
     const maxSize = 100 * 1024 * 1024 // 100MB
+    const vercelLimit = 4.5 * 1024 * 1024 // 4.5MB Vercel limit
+    
     if (file.size > maxSize) {
       return NextResponse.json({ 
         error: 'File too large. Maximum size is 100MB.' 
+      }, { status: 413 })
+    }
+    
+    // Warn if file is close to Vercel limit - suggest using presigned URL endpoint
+    if (file.size > vercelLimit) {
+      return NextResponse.json({ 
+        error: 'File too large for direct upload',
+        message: 'Files larger than 4.5MB cannot be uploaded directly through Vercel. Please use the presigned URL endpoint for large files.',
+        suggestion: 'Use POST /api/upload/presigned to get a presigned URL for direct S3 upload',
+        fileSize: file.size,
+        limit: vercelLimit
       }, { status: 413 })
     }
 
