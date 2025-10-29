@@ -122,6 +122,22 @@ export async function POST(request: NextRequest) {
 
     const result = await filesCollection.insertOne(fileDoc)
 
+    // If this is a gallery image, also create an entry in gallery_images collection
+    if (type === 'gallery') {
+      const galleryCollection = await getCollection('gallery_images')
+      const galleryDoc = {
+        title: metadata.title || file.name,
+        description: metadata.description || '',
+        image_url: publicUrl,
+        album: metadata.album || metadata.category || 'Other',
+        photographer: metadata.photographer || '',
+        date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      await galleryCollection.insertOne(galleryDoc)
+    }
+
     return NextResponse.json({
       success: true,
       file: {

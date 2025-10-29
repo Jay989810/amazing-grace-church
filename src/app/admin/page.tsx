@@ -83,6 +83,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('sermons')
   const [isEditing, setIsEditing] = useState(false)
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [galleryCategory, setGalleryCategory] = useState('Other')
   
   // Form states
   const [sermonForm, setSermonForm] = useState({
@@ -883,13 +884,37 @@ export default function AdminPage() {
                     Drag and drop images or click to browse. Supports JPG, PNG, GIF, WebP formats.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="gallery-category">Gallery Category/Tag *</Label>
+                    <Select
+                      id="gallery-category"
+                      value={galleryCategory}
+                      onChange={(e) => setGalleryCategory(e.target.value)}
+                    >
+                      <option value="Bible Study">Bible Study</option>
+                      <option value="Church Event">Church Event</option>
+                      <option value="Sunday Service">Sunday Service</option>
+                      <option value="Youth Program">Youth Program</option>
+                      <option value="Community Outreach">Community Outreach</option>
+                      <option value="Prayer Meeting">Prayer Meeting</option>
+                      <option value="Other">Other</option>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Select a category/tag for the images you're uploading. This helps organize and filter gallery images.
+                    </p>
+                  </div>
                   <FileUpload
                     type="gallery"
                     accept="image/*"
                     maxSize={10}
                     multiple={true}
-                    onUploadComplete={handleFileUploadComplete}
+                    onUploadComplete={(file) => {
+                      handleFileUploadComplete(file)
+                      // Refresh gallery images after upload
+                      loadAllData()
+                    }}
+                    metadata={{ album: galleryCategory, category: galleryCategory }}
                   />
                 </CardContent>
               </Card>

@@ -13,6 +13,7 @@ interface FileUploadProps {
   maxSize?: number // in MB
   multiple?: boolean
   className?: string
+  metadata?: Record<string, any> // Additional metadata to send with upload
 }
 
 interface UploadedFile {
@@ -32,7 +33,8 @@ export function FileUpload({
   accept = "*/*", 
   maxSize = 100, 
   multiple = false,
-  className = ""
+  className = "",
+  metadata = {}
 }: FileUploadProps) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -73,6 +75,9 @@ export function FileUpload({
       const formData = new FormData()
       formData.append('file', file)
       formData.append('type', type)
+      if (Object.keys(metadata).length > 0) {
+        formData.append('metadata', JSON.stringify(metadata))
+      }
       
       const response = await fetch('/api/upload', {
         method: 'POST',

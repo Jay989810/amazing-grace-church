@@ -57,13 +57,24 @@ export default function SermonsPage() {
 
   const categories = ["All", "Sunday Service", "Mid-week", "Bible Study", "Prayer Meeting", "Special Event"]
 
-  const getAudioUrl = (sermon: Sermon) => sermon.audioUrl || sermon.audio_url
-  const getVideoUrl = (sermon: Sermon) => sermon.videoUrl || sermon.video_url
-  const getNotesUrl = (sermon: Sermon) => sermon.notesUrl || sermon.notes_url
+  const getAudioUrl = (sermon: Sermon) => {
+    const url = sermon.audioUrl || sermon.audio_url
+    return url && url !== '#' && url.trim() !== '' ? url : null
+  }
+  
+  const getVideoUrl = (sermon: Sermon) => {
+    const url = sermon.videoUrl || sermon.video_url
+    return url && url !== '#' && url.trim() !== '' ? url : null
+  }
+  
+  const getNotesUrl = (sermon: Sermon) => {
+    const url = sermon.notesUrl || sermon.notes_url
+    return url && url !== '#' && url.trim() !== '' ? url : null
+  }
 
   const handlePlayAudio = (sermon: Sermon) => {
     const audioUrl = getAudioUrl(sermon)
-    if (audioUrl && audioUrl !== '#') {
+    if (audioUrl) {
       setPlayingSermon(sermon.id)
     } else {
       toast({
@@ -76,7 +87,7 @@ export default function SermonsPage() {
 
   const handleWatchVideo = (sermon: Sermon) => {
     const videoUrl = getVideoUrl(sermon)
-    if (videoUrl && videoUrl !== '#') {
+    if (videoUrl) {
       setPlayingSermon(sermon.id)
     } else {
       toast({
@@ -87,24 +98,53 @@ export default function SermonsPage() {
     }
   }
 
-  const handleDownloadSermon = (sermon: Sermon) => {
+  const handleDownloadSermon = async (sermon: Sermon) => {
     // Try audio first, then video, then notes
     const downloadUrl = getAudioUrl(sermon) || getVideoUrl(sermon) || getNotesUrl(sermon)
     
-    if (downloadUrl && downloadUrl !== '#') {
-      // Create a temporary link to trigger download
-      const link = document.createElement('a')
-      link.href = downloadUrl
-      link.download = `${sermon.title} - ${sermon.speaker}`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      toast({
-        title: "Download Started",
-        description: `Downloading "${sermon.title}"...`,
-        variant: "success"
-      })
+    if (downloadUrl) {
+      try {
+        // Fetch the file to trigger download
+        const response = await fetch(downloadUrl)
+        if (!response.ok) {
+          throw new Error('Failed to fetch file')
+        }
+        
+        const blob = await response.blob()
+        const blobUrl = window.URL.createObjectURL(blob)
+        
+        // Create a temporary link to trigger download
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = `${sermon.title} - ${sermon.speaker}.${downloadUrl.split('.').pop()?.split('?')[0] || 'mp3'}`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        // Clean up blob URL
+        window.URL.revokeObjectURL(blobUrl)
+        
+        toast({
+          title: "Download Started",
+          description: `Downloading "${sermon.title}"...`,
+          variant: "success"
+        })
+      } catch (error) {
+        // Fallback: try direct download
+        const link = document.createElement('a')
+        link.href = downloadUrl
+        link.download = `${sermon.title} - ${sermon.speaker}`
+        link.target = '_blank'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        toast({
+          title: "Download Started",
+          description: `Downloading "${sermon.title}"...`,
+          variant: "success"
+        })
+      }
     } else {
       toast({
         title: "Download Not Available",
@@ -117,12 +157,14 @@ export default function SermonsPage() {
   const isAudioSermon = (sermon: Sermon) => {
     const audioUrl = getAudioUrl(sermon)
     const videoUrl = getVideoUrl(sermon)
-    return audioUrl && audioUrl !== '#' && (!videoUrl || videoUrl === '#')
+    // Audio sermon: has audio but no video
+    return !!audioUrl && !videoUrl
   }
 
   const isVideoSermon = (sermon: Sermon) => {
     const videoUrl = getVideoUrl(sermon)
-    return videoUrl && videoUrl !== '#'
+    // Video sermon: has video (regardless of audio)
+    return !!videoUrl
   }
 
   const handleSubscribeToSermons = () => {
