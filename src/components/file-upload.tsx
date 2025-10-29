@@ -275,7 +275,7 @@ export function FileUpload({
               <p className="text-xs text-muted-foreground mt-1">
                 Max size: {maxSize}MB {type === 'gallery' ? '(Images only)' : type === 'sermon' ? '(Audio/Video only)' : ''}
                 <br />
-                <span className="text-xs">Large files (>4.5MB) will upload directly to S3</span>
+                <span className="text-xs">Large files ({'>'}4.5MB) will upload directly to S3</span>
               </p>
             </div>
             
