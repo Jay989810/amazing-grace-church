@@ -657,15 +657,50 @@ export default function AdminPage() {
   }
 
   const handleLeaderPhotoUpload = (file: any) => {
-    setLeaderForm({ ...leaderForm, image: file.url })
-    toast({
-      title: "Photo Uploaded",
-      description: "Photo URL has been set"
-    })
+    try {
+      if (!file) {
+        console.error('handleLeaderPhotoUpload received undefined file')
+        toast({
+          title: "Upload Error",
+          description: "File upload failed - no file data received",
+          variant: "destructive"
+        })
+        return
+      }
+      if (!file.url) {
+        console.error('handleLeaderPhotoUpload received file without URL:', file)
+        toast({
+          title: "Upload Error",
+          description: "File uploaded but URL is missing",
+          variant: "destructive"
+        })
+        return
+      }
+      setLeaderForm({ ...leaderForm, image: file.url })
+      toast({
+        title: "Photo Uploaded",
+        description: "Photo URL has been set"
+      })
+    } catch (error) {
+      console.error('Error in handleLeaderPhotoUpload:', error)
+      toast({
+        title: "Upload Processing Error",
+        description: error instanceof Error ? error.message : "Failed to process photo upload",
+        variant: "destructive"
+      })
+    }
   }
 
   const handleFileUploadComplete = (file: any) => {
-    setUploadedFiles(prev => [file, ...prev])
+    try {
+      if (!file) {
+        console.error('handleFileUploadComplete received undefined file')
+        return
+      }
+      setUploadedFiles(prev => [file, ...prev])
+    } catch (error) {
+      console.error('Error in handleFileUploadComplete:', error)
+    }
   }
 
   const handleDeleteFile = async (fileId: string, fileName: string) => {
@@ -931,10 +966,40 @@ export default function AdminPage() {
                       maxSize={100}
                       multiple={false}
                       onUploadComplete={(file) => {
-                        if (file.mimeType.startsWith('audio/')) {
-                          setSermonForm({...sermonForm, audio_url: file.url})
-                        } else if (file.mimeType.startsWith('video/')) {
-                          setSermonForm({...sermonForm, video_url: file.url})
+                        try {
+                          if (!file) {
+                            console.error('onUploadComplete received undefined file')
+                            return
+                          }
+                          if (!file.mimeType || !file.url) {
+                            console.error('onUploadComplete received invalid file object:', file)
+                            toast({
+                              title: "Upload Warning",
+                              description: "File uploaded but missing required data",
+                              variant: "destructive"
+                            })
+                            return
+                          }
+                          if (file.mimeType.startsWith('audio/')) {
+                            setSermonForm({...sermonForm, audio_url: file.url})
+                            toast({
+                              title: "Audio URL Set",
+                              description: "Audio file URL has been automatically set"
+                            })
+                          } else if (file.mimeType.startsWith('video/')) {
+                            setSermonForm({...sermonForm, video_url: file.url})
+                            toast({
+                              title: "Video URL Set",
+                              description: "Video file URL has been automatically set"
+                            })
+                          }
+                        } catch (error) {
+                          console.error('Error processing upload completion:', error)
+                          toast({
+                            title: "Upload Processing Error",
+                            description: error instanceof Error ? error.message : "Failed to process upload",
+                            variant: "destructive"
+                          })
                         }
                       }}
                     />
@@ -1193,9 +1258,27 @@ export default function AdminPage() {
                     maxSize={10}
                     multiple={true}
                     onUploadComplete={(file) => {
-                      handleFileUploadComplete(file)
-                      // Refresh gallery images after upload
-                      loadAllData()
+                      try {
+                        if (!file || !file.mimeType || !file.url) {
+                          console.error('onUploadComplete received invalid file object:', file)
+                          toast({
+                            title: "Upload Warning",
+                            description: "File uploaded but missing required data",
+                            variant: "destructive"
+                          })
+                          return
+                        }
+                        handleFileUploadComplete(file)
+                        // Refresh gallery images after upload
+                        loadAllData()
+                      } catch (error) {
+                        console.error('Error processing gallery upload completion:', error)
+                        toast({
+                          title: "Upload Processing Error",
+                          description: error instanceof Error ? error.message : "Failed to process upload",
+                          variant: "destructive"
+                        })
+                      }
                     }}
                     metadata={{ album: galleryCategory, category: galleryCategory }}
                   />
@@ -1991,7 +2074,33 @@ export default function AdminPage() {
                     maxSize={5}
                     multiple={false}
                     onUploadComplete={(file) => {
-                      setSettingsForm({...settingsForm, heroImage: file.url})
+                      try {
+                        if (!file) {
+                          console.error('onUploadComplete received undefined file')
+                          return
+                        }
+                        if (!file.url) {
+                          console.error('onUploadComplete received file without URL:', file)
+                          toast({
+                            title: "Upload Warning",
+                            description: "File uploaded but URL is missing",
+                            variant: "destructive"
+                          })
+                          return
+                        }
+                        setSettingsForm({...settingsForm, heroImage: file.url})
+                        toast({
+                          title: "Hero Image Set",
+                          description: "Hero image URL has been automatically set"
+                        })
+                      } catch (error) {
+                        console.error('Error processing settings upload completion:', error)
+                        toast({
+                          title: "Upload Processing Error",
+                          description: error instanceof Error ? error.message : "Failed to process upload",
+                          variant: "destructive"
+                        })
+                      }
                     }}
                   />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

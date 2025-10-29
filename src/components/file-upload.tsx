@@ -151,9 +151,27 @@ export function FileUpload({
       }
 
       const confirmData = await confirmResponse.json()
+      
+      // Validate response structure
+      if (!confirmData || !confirmData.file) {
+        console.error('Invalid confirmation response:', confirmData)
+        throw new Error('Upload confirmation failed - invalid response from server')
+      }
+      
       const uploadedFile = confirmData.file
       
-      console.log('Upload complete:', uploadedFile)
+      // Validate required fields in uploadedFile
+      if (!uploadedFile.mimeType || !uploadedFile.url) {
+        console.error('Uploaded file missing required fields:', uploadedFile)
+        throw new Error('Upload confirmation failed - missing required file data (mimeType, url)')
+      }
+      
+      console.log('Upload complete:', {
+        fileName: uploadedFile.originalName || uploadedFile.filename,
+        fileUrl: uploadedFile.url,
+        mimeType: uploadedFile.mimeType,
+        fileSize: uploadedFile.size
+      })
       
       setUploadedFiles(prev => [uploadedFile, ...prev])
       
@@ -162,8 +180,19 @@ export function FileUpload({
         description: `${file.name} uploaded successfully`
       })
       
+      // Safely call onUploadComplete with error handling
       if (onUploadComplete) {
-        onUploadComplete(uploadedFile)
+        try {
+          onUploadComplete(uploadedFile)
+        } catch (callbackError) {
+          console.error('Error in onUploadComplete callback:', callbackError)
+          // Don't throw - just log the error to prevent page crash
+          toast({
+            title: "Upload Successful",
+            description: "File uploaded but there was an error processing it",
+            variant: "default"
+          })
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed'
