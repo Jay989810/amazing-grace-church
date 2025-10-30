@@ -166,19 +166,19 @@ const getVideoUrl = (sermon: Sermon) => {
       return
     }
 
-    try {
-      // Infer extension
-      let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
-      if (!extension || extension.length > 5) {
-        if (downloadUrl.includes('.mp3')) extension = 'mp3'
-        else if (downloadUrl.includes('.mp4')) extension = 'mp4'
-        else if (downloadUrl.includes('.mov')) extension = 'mov'
-        else if (downloadUrl.includes('.wav')) extension = 'wav'
-        else if (downloadUrl.includes('.pdf')) extension = 'pdf'
-        else extension = 'file'
-      }
+    // Infer extension and file name (used by both paths)
+    let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
+    if (!extension || extension.length > 5) {
+      if (downloadUrl.includes('.mp3')) extension = 'mp3'
+      else if (downloadUrl.includes('.mp4')) extension = 'mp4'
+      else if (downloadUrl.includes('.mov')) extension = 'mov'
+      else if (downloadUrl.includes('.wav')) extension = 'wav'
+      else if (downloadUrl.includes('.pdf')) extension = 'pdf'
+      else extension = 'file'
+    }
+    const fileName = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
 
-      const fileName = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
+    try {
 
       // Try direct click with download attribute (preferred)
       const directLink = document.createElement('a')
