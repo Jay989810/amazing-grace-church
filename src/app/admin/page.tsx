@@ -1253,7 +1253,7 @@ const startEditEvent = (event: Event) => {
                         <Button variant="outline" onClick={() => {
                           setIsEditing(false)
                           setEditingItem(null)
-                          setEventForm({ title: '', description: '', date: '', location: '' })
+                          setEventForm({ title: '', description: '', date: '', time: '', venue: '', type: 'Service', image: '' })
                         }}>
                           <X className="w-4 h-4 mr-2" />
                           Cancel
