@@ -179,34 +179,22 @@ const getVideoUrl = (sermon: Sermon) => {
     const fileName = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
 
     try {
-
-      // Try direct click with download attribute (preferred)
-      const directLink = document.createElement('a')
-      directLink.href = downloadUrl
-      directLink.download = fileName
-      document.body.appendChild(directLink)
-      directLink.click()
-      directLink.remove()
-
+      // Always fetch as blob to force download (prevents in-browser preview)
+      const response = await fetch(downloadUrl, { mode: 'cors', credentials: 'omit' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(objectUrl)
       toast({ title: "Download Started", description: `Downloading "${sermon.title}"...` })
-    } catch (e) {
-      // Fallback: fetch as blob and download
-      try {
-        const response = await fetch(downloadUrl, { mode: 'cors' })
-        const blob = await response.blob()
-        const objectUrl = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = objectUrl
-        link.download = fileName
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        URL.revokeObjectURL(objectUrl)
-        toast({ title: "Download Started", description: `Downloading "${sermon.title}"...` })
-      } catch (error) {
-        console.error('Download error:', error)
-        toast({ title: "Download Error", description: "Failed to download file.", variant: "destructive" })
-      }
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({ title: "Download Error", description: "Failed to download file.", variant: "destructive" })
     }
   }
 
