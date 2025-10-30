@@ -117,67 +117,42 @@ export default function SermonsPage() {
   }
 
   const handleDownloadSermon = async (sermon: Sermon) => {
-    console.log('handleDownloadSermon called for sermon:', sermon)
-    console.log('Sermon audioUrl:', sermon.audioUrl)
-    console.log('Sermon audio_url:', sermon.audio_url)
-    console.log('Sermon videoUrl:', sermon.videoUrl)
-    console.log('Sermon video_url:', sermon.video_url)
-    
-    // Try audio first, then video, then notes
+    // Prefer audio, then video, then notes
     const downloadUrl = getAudioUrl(sermon) || getVideoUrl(sermon) || getNotesUrl(sermon)
-    console.log('Final download URL:', downloadUrl)
-    
-    if (downloadUrl) {
-      try {
-        console.log('Downloading from URL:', downloadUrl)
-        
-        // Get file extension from URL
-        let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
-        
-        // If no extension, try to determine from URL path
-        if (!extension || extension.length > 5) {
-          if (downloadUrl.includes('.mp3')) extension = 'mp3'
-          else if (downloadUrl.includes('.mp4')) extension = 'mp4'
-          else if (downloadUrl.includes('.mov')) extension = 'mov'
-          else if (downloadUrl.includes('.wav')) extension = 'wav'
-          else if (downloadUrl.includes('.pdf')) extension = 'pdf'
-          else extension = 'file'
-        }
-        
-        // Create download link and trigger download
-        const link = document.createElement('a')
-        link.href = downloadUrl
-        link.download = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
-        link.target = '_blank'
-        link.rel = 'noopener noreferrer'
-        
-        document.body.appendChild(link)
-        link.click()
-        
-        // Clean up after a delay
-        setTimeout(() => {
-          document.body.removeChild(link)
-        }, 100)
-        
-        toast({
-          title: "Download Started",
-          description: `Downloading "${sermon.title}"...`,
-        })
-      } catch (error) {
-        console.error('Download error:', error)
-        toast({
-          title: "Download Error",
-          description: "Failed to download file. You can try right-clicking the media player and selecting 'Save As'.",
-          variant: "destructive"
-        })
-      }
-    } else {
-      console.log('No download URL available for sermon:', sermon)
-      toast({
-        title: "Download Not Available",
-        description: "No downloadable file is available for this sermon.",
-        variant: "destructive"
-      })
+    if (!downloadUrl) {
+      toast({ title: "Download Not Available", description: "No downloadable file is available for this sermon.", variant: "destructive" })
+      return
+    }
+
+    // Infer extension and file name
+    let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
+    if (!extension || extension.length > 5) {
+      if (downloadUrl.includes('.mp3')) extension = 'mp3'
+      else if (downloadUrl.includes('.mp4')) extension = 'mp4'
+      else if (downloadUrl.includes('.mov')) extension = 'mov'
+      else if (downloadUrl.includes('.wav')) extension = 'wav'
+      else if (downloadUrl.includes('.pdf')) extension = 'pdf'
+      else extension = 'file'
+    }
+    const fileName = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
+
+    try {
+      // Force download via blob to avoid preview
+      const response = await fetch(downloadUrl, { mode: 'cors', credentials: 'omit' })
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = objectUrl
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(objectUrl)
+      toast({ title: "Download Started", description: `Downloading "${sermon.title}"...` })
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({ title: "Download Error", description: "Failed to download file.", variant: "destructive" })
     }
   }
 
