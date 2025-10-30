@@ -18,9 +18,13 @@ interface Sermon {
   date: string
   category: string
   description: string
-  audio_url: string
-  video_url: string
-  notes_url: string
+  audio_url?: string
+  video_url?: string
+  notes_url?: string
+  // API may also send camelCase
+  audioUrl?: string
+  videoUrl?: string
+  notesUrl?: string
   duration: string
   thumbnail: string
 }
@@ -105,14 +109,14 @@ export default function Home() {
 
   const [playingSermon, setPlayingSermon] = useState<string | null>(null)
 
-  const getAudioUrl = (sermon: Sermon) => {
-    const url = sermon.audio_url
+const getAudioUrl = (sermon: Sermon) => {
+  const url = sermon.audio_url || sermon.audioUrl
     // Vercel Blob URLs work directly, no conversion needed
     return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
   
-  const getVideoUrl = (sermon: Sermon) => {
-    const url = sermon.video_url
+const getVideoUrl = (sermon: Sermon) => {
+  const url = sermon.video_url || sermon.videoUrl
     // Vercel Blob URLs work directly, no conversion needed
     return url && url !== '#' && url.trim() !== '' && url !== 'null' ? url : null
   }
@@ -155,60 +159,54 @@ export default function Home() {
   }
 
   const handleDownloadSermon = async (sermon: Sermon) => {
-    const downloadUrl = sermon.audio_url || sermon.video_url || sermon.notes_url
-    
-    if (downloadUrl && downloadUrl !== '#' && downloadUrl !== 'null') {
+    const downloadUrl = sermon.audio_url || sermon.audioUrl || sermon.video_url || sermon.videoUrl || sermon.notes_url || sermon.notesUrl
+
+    if (!downloadUrl || downloadUrl === '#' || downloadUrl === 'null') {
+      toast({ title: "Download Not Available", description: "No downloadable file is available for this sermon.", variant: "destructive" })
+      return
+    }
+
+    try {
+      // Infer extension
+      let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
+      if (!extension || extension.length > 5) {
+        if (downloadUrl.includes('.mp3')) extension = 'mp3'
+        else if (downloadUrl.includes('.mp4')) extension = 'mp4'
+        else if (downloadUrl.includes('.mov')) extension = 'mov'
+        else if (downloadUrl.includes('.wav')) extension = 'wav'
+        else if (downloadUrl.includes('.pdf')) extension = 'pdf'
+        else extension = 'file'
+      }
+
+      const fileName = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
+
+      // Try direct click with download attribute (preferred)
+      const directLink = document.createElement('a')
+      directLink.href = downloadUrl
+      directLink.download = fileName
+      document.body.appendChild(directLink)
+      directLink.click()
+      directLink.remove()
+
+      toast({ title: "Download Started", description: `Downloading "${sermon.title}"...` })
+    } catch (e) {
+      // Fallback: fetch as blob and download
       try {
-        console.log('Downloading from URL:', downloadUrl)
-        
-        // Get file extension from URL
-        let extension = downloadUrl.split('.').pop()?.split('?')[0] || ''
-        
-        // If no extension, try to determine from URL path
-        if (!extension || extension.length > 5) {
-          if (downloadUrl.includes('.mp3')) extension = 'mp3'
-          else if (downloadUrl.includes('.mp4')) extension = 'mp4'
-          else if (downloadUrl.includes('.mov')) extension = 'mov'
-          else if (downloadUrl.includes('.wav')) extension = 'wav'
-          else if (downloadUrl.includes('.pdf')) extension = 'pdf'
-          else extension = 'file'
-        }
-        
-        // Create download link and trigger download
+        const response = await fetch(downloadUrl, { mode: 'cors' })
+        const blob = await response.blob()
+        const objectUrl = URL.createObjectURL(blob)
         const link = document.createElement('a')
-        link.href = downloadUrl
-        link.download = `${sermon.title.replace(/[^a-zA-Z0-9\s]/g, '')} - ${sermon.speaker.replace(/[^a-zA-Z0-9\s]/g, '')}.${extension}`
-        link.target = '_blank'
-        link.rel = 'noopener noreferrer'
-        
+        link.href = objectUrl
+        link.download = fileName
         document.body.appendChild(link)
         link.click()
-        
-        // Clean up after a delay
-        setTimeout(() => {
-          document.body.removeChild(link)
-        }, 100)
-        
-        toast({
-          title: "Download Started",
-          description: `Downloading "${sermon.title}"...`,
-        })
-        return
+        link.remove()
+        URL.revokeObjectURL(objectUrl)
+        toast({ title: "Download Started", description: `Downloading "${sermon.title}"...` })
       } catch (error) {
         console.error('Download error:', error)
-        toast({
-          title: "Download Error",
-          description: "Failed to download file. You can try right-clicking the media player and selecting 'Save As'.",
-          variant: "destructive"
-        })
-        return
+        toast({ title: "Download Error", description: "Failed to download file.", variant: "destructive" })
       }
-    } else {
-      toast({
-        title: "Download Not Available",
-        description: "No downloadable file is available for this sermon.",
-        variant: "destructive"
-      })
     }
   }
 
@@ -540,14 +538,21 @@ export default function Home() {
             </div>
           ) : recentGallery.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {recentGallery.map((image) => (
+              {recentGallery.map((image) => {
+                const rawUrl = (image as any).image_url || (image as any).imageUrl || (image as any).url || ''
+                let displayUrl = rawUrl
+                try {
+                  displayUrl = decodeURIComponent(rawUrl)
+                } catch {}
+                return (
                 <Card key={image.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-muted relative">
                     <Image
-                      src={decodeURIComponent(image.image_url)}
+                      src={displayUrl}
                       alt={image.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -566,7 +571,7 @@ export default function Home() {
                     )}
                   </CardContent>
                 </Card>
-              ))}
+              )})}
             </div>
           ) : (
             <div className="text-center py-8">

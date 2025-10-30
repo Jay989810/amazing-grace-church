@@ -44,7 +44,8 @@ interface Event {
   title: string
   description: string
   date: string
-  location: string
+  time?: string
+  venue?: string
   created_at: string
   updated_at: string
 }
@@ -121,12 +122,15 @@ export default function AdminPage() {
     duration: ''
   })
   
-  const [eventForm, setEventForm] = useState({
-    title: '',
-    description: '',
-    date: '',
-    location: ''
-  })
+const [eventForm, setEventForm] = useState({
+  title: '',
+  description: '',
+  date: '',
+  time: '',
+  venue: '',
+  type: 'Service',
+  image: ''
+})
 
   const [settingsForm, setSettingsForm] = useState({
     churchName: '',
@@ -380,7 +384,7 @@ export default function AdminPage() {
   }
 
   // Event CRUD operations
-  const handleCreateEvent = async () => {
+const handleCreateEvent = async () => {
     try {
       const response = await fetch('/api/events', {
         method: 'POST',
@@ -388,10 +392,10 @@ export default function AdminPage() {
         body: JSON.stringify(eventForm)
       })
       
-      if (response.ok) {
+    if (response.ok) {
         const newEvent = await response.json()
         setEvents([newEvent, ...events])
-        setEventForm({ title: '', description: '', date: '', location: '' })
+      setEventForm({ title: '', description: '', date: '', time: '', venue: '', type: 'Service', image: '' })
         toast({
           title: "Success",
           description: "Event created successfully"
@@ -406,7 +410,7 @@ export default function AdminPage() {
     }
   }
 
-  const handleUpdateEvent = async () => {
+const handleUpdateEvent = async () => {
     try {
       const response = await fetch('/api/events', {
         method: 'PUT',
@@ -457,13 +461,16 @@ export default function AdminPage() {
     }
   }
 
-  const startEditEvent = (event: Event) => {
+const startEditEvent = (event: Event) => {
     setEditingItem(event)
     setEventForm({
       title: event.title,
       description: event.description,
-      date: event.date,
-      location: event.location
+    date: event.date,
+    time: event.time || '',
+    venue: event.venue || '',
+    type: (event as any).type || 'Service',
+    image: (event as any).image || ''
     })
     setIsEditing(true)
   }
@@ -1188,19 +1195,42 @@ export default function AdminPage() {
                       <Label htmlFor="event-date">Date</Label>
                       <Input
                         id="event-date"
-                        type="datetime-local"
+                        type="date"
                         value={eventForm.date}
                         onChange={(e) => setEventForm({...eventForm, date: e.target.value})}
                       />
                     </div>
                     <div>
-                      <Label htmlFor="event-location">Location</Label>
+                      <Label htmlFor="event-time">Time</Label>
                       <Input
-                        id="event-location"
-                        value={eventForm.location}
-                        onChange={(e) => setEventForm({...eventForm, location: e.target.value})}
-                        placeholder="Event location"
+                        id="event-time"
+                        type="time"
+                        value={eventForm.time}
+                        onChange={(e) => setEventForm({...eventForm, time: e.target.value})}
                       />
+                    </div>
+                    <div>
+                      <Label htmlFor="event-venue">Venue</Label>
+                      <Input
+                        id="event-venue"
+                        value={eventForm.venue}
+                        onChange={(e) => setEventForm({...eventForm, venue: e.target.value})}
+                        placeholder="Event venue"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="event-type">Type</Label>
+                      <Select
+                        id="event-type"
+                        value={eventForm.type}
+                        onChange={(e) => setEventForm({...eventForm, type: e.target.value})}
+                      >
+                        <option value="Service">Service</option>
+                        <option value="Conference">Conference</option>
+                        <option value="Crusade">Crusade</option>
+                        <option value="Youth Program">Youth Program</option>
+                        <option value="Other">Other</option>
+                      </Select>
                     </div>
                   </div>
                   <div>
@@ -1252,10 +1282,10 @@ export default function AdminPage() {
                           <div className="flex-1">
                             <h3 className="font-semibold text-lg">{event.title}</h3>
                             <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
-                            <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                              <span>{new Date(event.date).toLocaleString()}</span>
-                              <span>{event.location}</span>
-                            </div>
+                  <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
+                    <span>{new Date(event.date).toLocaleDateString()} {event.time}</span>
+                    <span>{event.venue}</span>
+                  </div>
                           </div>
                           <div className="flex space-x-2">
                             <Button size="sm" variant="outline" onClick={() => startEditEvent(event)}>
