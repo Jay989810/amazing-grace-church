@@ -63,7 +63,8 @@ export default function Home() {
         const sermonsResponse = await fetch('/api/sermons')
         if (sermonsResponse.ok) {
           const sermons = await sermonsResponse.json()
-          setRecentSermons(sermons.slice(0, 3))
+          const validSermons = sermons.filter((s: any) => s.title && s.speaker)
+          setRecentSermons(validSermons.slice(0, 3))
         }
 
         // Fetch recent events (limit to 3)
@@ -77,7 +78,8 @@ export default function Home() {
         const galleryResponse = await fetch('/api/gallery')
         if (galleryResponse.ok) {
           const gallery = await galleryResponse.json()
-          setRecentGallery(gallery.slice(0, 3))
+          const validImages = gallery.filter((g: any) => (g.image_url || g.imageUrl))
+          setRecentGallery(validImages.slice(0, 3))
         }
       } catch (error) {
         console.error('Error fetching recent data:', error)
@@ -542,7 +544,7 @@ export default function Home() {
                 <Card key={image.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-muted relative">
                     <Image
-                      src={image.image_url}
+                      src={decodeURIComponent(image.image_url)}
                       alt={image.title}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"

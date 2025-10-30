@@ -141,3 +141,4 @@ You should see `Access-Control-Allow-Origin` in the response headers.
 
 - [AWS S3 CORS Documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html)
 - [AWS S3 CORS Configuration Examples](https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors-configuration-examples.html)
+
