@@ -97,6 +97,23 @@ export interface LeadershipMemberDocument {
   updated_at: string
 }
 
+export interface GivingTransactionDocument {
+  _id?: ObjectId
+  name: string
+  email: string
+  amount: number
+  currency: string
+  giving_type: 'Tithe' | 'Offering' | 'Building Fund' | 'Missions'
+  message?: string
+  payment_provider: 'flutterwave' | 'paystack'
+  payment_reference: string
+  transaction_id?: string
+  status: 'pending' | 'successful' | 'failed' | 'cancelled'
+  receipt_sent: boolean
+  created_at: string
+  updated_at: string
+}
+
 // Helper functions to convert between MongoDB documents and API types
 export function sermonDocumentToApi(doc: SermonDocument) {
   return {
@@ -192,5 +209,24 @@ export function leadershipMemberDocumentToApi(doc: LeadershipMemberDocument) {
     bio: doc.bio,
     email: doc.email,
     order: doc.order
+  }
+}
+
+export function givingTransactionDocumentToApi(doc: GivingTransactionDocument) {
+  return {
+    id: doc._id?.toString() || '',
+    name: doc.name,
+    email: doc.email,
+    amount: doc.amount,
+    currency: doc.currency,
+    givingType: doc.giving_type,
+    message: doc.message,
+    paymentProvider: doc.payment_provider,
+    paymentReference: doc.payment_reference,
+    transactionId: doc.transaction_id,
+    status: doc.status,
+    receiptSent: doc.receipt_sent,
+    createdAt: doc.created_at,
+    updatedAt: doc.updated_at
   }
 }

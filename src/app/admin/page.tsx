@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
-import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award } from "lucide-react"
+import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award, DollarSign } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
 
@@ -877,10 +877,18 @@ const startEditEvent = (event: Event) => {
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">Admin Dashboard</h1>
             <p className="text-muted-foreground">Welcome back, {session.user?.name || 'Admin'}</p>
           </div>
-          <Button variant="outline" onClick={handleSignOut} className="w-full sm:w-auto">
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <a href="/admin/giving">
+                <DollarSign className="w-4 h-4 mr-2" />
+                Giving
+              </a>
+            </Button>
+            <Button variant="outline" onClick={handleSignOut} className="w-full sm:w-auto">
+              <LogOut className="w-4 h-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
