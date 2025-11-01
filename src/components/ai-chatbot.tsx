@@ -120,18 +120,31 @@ export function AIChatbot() {
     <>
       {/* Chat Button */}
       {!isOpen && (
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl z-50 hover:scale-110 transition-all duration-300 bg-gradient-to-br from-primary to-primary/80 dark:from-primary dark:to-primary/80 text-white hover:shadow-primary/50 group"
-          size="lg"
+        <div
+          className="fixed bottom-6 right-6 z-50"
+          style={{
+            filter: 'drop-shadow(0 10px 40px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))'
+          }}
         >
-          <div className="relative">
-            <Bot className="h-7 w-7 animate-pulse group-hover:animate-none" />
-            <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-background animate-ping"></div>
-            <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-background"></div>
-          </div>
-          <span className="sr-only">Open AI Chat Assistant</span>
-        </Button>
+          <Button
+            onClick={() => setIsOpen(true)}
+            className="h-16 w-16 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 group"
+            size="lg"
+            style={{
+              background: 'linear-gradient(135deg, hsl(221.2, 83.2%, 53.3%) 0%, hsl(221.2, 83.2%, 48%) 100%)',
+              color: 'white',
+              border: '3px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.25), 0 0 30px rgba(59, 130, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+            }}
+          >
+            <div className="relative">
+              <Bot className="h-7 w-7 animate-pulse group-hover:animate-none drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))' }} />
+              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white shadow-lg animate-ping"></div>
+              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
+            </div>
+            <span className="sr-only">Open AI Chat Assistant</span>
+          </Button>
+        </div>
       )}
 
       {/* Chat Window */}
