@@ -78,17 +78,27 @@ export function useRealtimeData<T>(
     }
   }, [fetchData])
 
-  // Listen for storage events (cross-tab updates)
+  // Listen for storage events (cross-tab updates) and custom events (same-tab updates)
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key?.startsWith('admin-update-')) {
-        // Admin made a change, refresh data
+        // Admin made a change in another tab, refresh data
         fetchData()
       }
     }
 
+    const handleAdminUpdate = (e: CustomEvent) => {
+      // Admin made a change in same tab, refresh data
+      fetchData()
+    }
+
     window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    window.addEventListener('admin-update', handleAdminUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('admin-update', handleAdminUpdate as EventListener)
+    }
   }, [fetchData])
 
   // Manual refresh function
