@@ -57,46 +57,50 @@ export default function Home() {
   const { toast } = useToast()
   const { settings } = useSettings()
   const [isSubscribing, setIsSubscribing] = useState(false)
-  const [recentSermons, setRecentSermons] = useState<Sermon[]>([])
-  const [recentEvents, setRecentEvents] = useState<Event[]>([])
-  const [recentGallery, setRecentGallery] = useState<GalleryImage[]>([])
-  const [loading, setLoading] = useState(true)
+  // Real-time data fetching for sermons
+  const { data: sermonsData, loading: sermonsLoading } = useRealtimeData<Sermon[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/sermons')
+      if (!response.ok) throw new Error('Failed to fetch sermons')
+      const data = await response.json()
+      const validSermons = data.filter((s: any) => s.title && s.speaker)
+      return validSermons.slice(0, 3)
+    },
+    interval: 30000, // Refresh every 30 seconds
+    enabled: true
+  })
 
-  // Fetch recent data from APIs
-  useEffect(() => {
-    const fetchRecentData = async () => {
-      try {
-        // Fetch recent sermons (limit to 3)
-        const sermonsResponse = await fetch('/api/sermons')
-        if (sermonsResponse.ok) {
-          const sermons = await sermonsResponse.json()
-          const validSermons = sermons.filter((s: any) => s.title && s.speaker)
-          setRecentSermons(validSermons.slice(0, 3))
-        }
+  const recentSermons = sermonsData || []
 
-        // Fetch recent events (limit to 3)
-        const eventsResponse = await fetch('/api/events')
-        if (eventsResponse.ok) {
-          const events = await eventsResponse.json()
-          setRecentEvents(events.slice(0, 3))
-        }
+  // Real-time data fetching for events
+  const { data: eventsData, loading: eventsLoading } = useRealtimeData<Event[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/events')
+      if (!response.ok) throw new Error('Failed to fetch events')
+      const data = await response.json()
+      return data.slice(0, 3)
+    },
+    interval: 30000,
+    enabled: true
+  })
 
-        // Fetch recent gallery images (limit to 3)
-        const galleryResponse = await fetch('/api/gallery')
-        if (galleryResponse.ok) {
-          const gallery = await galleryResponse.json()
-          const validImages = gallery.filter((g: any) => (g.image_url || g.imageUrl))
-          setRecentGallery(validImages.slice(0, 3))
-        }
-      } catch (error) {
-        console.error('Error fetching recent data:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  const recentEvents = eventsData || []
 
-    fetchRecentData()
-  }, [])
+  // Real-time data fetching for gallery
+  const { data: galleryData, loading: galleryLoading } = useRealtimeData<GalleryImage[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/gallery')
+      if (!response.ok) throw new Error('Failed to fetch gallery')
+      const data = await response.json()
+      const validImages = data.filter((g: any) => (g.image_url || g.imageUrl))
+      return validImages.slice(0, 3)
+    },
+    interval: 30000,
+    enabled: true
+  })
+
+  const recentGallery = galleryData || []
+  const loading = sermonsLoading || eventsLoading || galleryLoading
 
   const handleSubscribe = async () => {
     setIsSubscribing(true)
