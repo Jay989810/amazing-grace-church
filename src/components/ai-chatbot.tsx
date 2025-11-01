@@ -109,8 +109,11 @@ export function AIChatbot() {
     "When does service start?",
     "How do I join the band?",
     "What are your service times?",
-    "How can I contact the church?",
-    "Where are you located?"
+    "How can I give online?",
+    "Where are you located?",
+    "Do you have youth programs?",
+    "How do I become a member?",
+    "Can I watch sermons online?"
   ]
 
   return (
@@ -119,11 +122,15 @@ export function AIChatbot() {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-110 transition-transform bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200"
+          className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl z-50 hover:scale-110 transition-all duration-300 bg-gradient-to-br from-primary to-primary/80 dark:from-primary dark:to-primary/80 text-white hover:shadow-primary/50 group"
           size="lg"
         >
-          <MessageCircle className="h-6 w-6" />
-          <span className="sr-only">Open AI Chat</span>
+          <div className="relative">
+            <Bot className="h-7 w-7 animate-pulse group-hover:animate-none" />
+            <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-background animate-ping"></div>
+            <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-500 rounded-full border-2 border-white dark:border-background"></div>
+          </div>
+          <span className="sr-only">Open AI Chat Assistant</span>
         </Button>
       )}
 
