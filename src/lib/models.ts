@@ -230,3 +230,31 @@ export function givingTransactionDocumentToApi(doc: GivingTransactionDocument) {
     updatedAt: doc.updated_at
   }
 }
+
+export interface OrganizationDocument {
+  _id?: ObjectId
+  name: string
+  description: string
+  leaderName: string
+  leaderRole: string
+  contactEmail?: string
+  imageUrl?: string
+  dateCreated: string
+  created_at: string
+  updated_at: string
+}
+
+export function organizationDocumentToApi(doc: OrganizationDocument) {
+  return {
+    id: doc._id?.toString() || '',
+    name: doc.name,
+    description: doc.description,
+    leaderName: doc.leaderName,
+    leaderRole: doc.leaderRole,
+    contactEmail: doc.contactEmail,
+    imageUrl: doc.imageUrl,
+    dateCreated: doc.dateCreated,
+    createdAt: doc.created_at,
+    updatedAt: doc.updated_at
+  }
+}

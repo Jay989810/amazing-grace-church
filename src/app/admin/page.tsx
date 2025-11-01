@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
-import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award, DollarSign } from "lucide-react"
+import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award, DollarSign, Building2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
 
@@ -882,6 +882,12 @@ const startEditEvent = (event: Event) => {
               <a href="/admin/giving">
                 <DollarSign className="w-4 h-4 mr-2" />
                 Giving
+              </a>
+            </Button>
+            <Button variant="outline" asChild className="w-full sm:w-auto">
+              <a href="/admin/organizations">
+                <Building2 className="w-4 h-4 mr-2" />
+                Organizations
               </a>
             </Button>
             <Button variant="outline" onClick={handleSignOut} className="w-full sm:w-auto">
