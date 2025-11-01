@@ -77,11 +77,20 @@ Assistant:`
 
         if (hfResponse.ok) {
           const data = await hfResponse.json()
-          responseText = Array.isArray(data) && data[0]?.generated_text 
-            ? data[0].generated_text.trim()
-            : typeof data === 'string' 
-            ? data.trim()
-            : data[0]?.generated_text?.trim() || ''
+          // Handle different response formats from Hugging Face
+          if (Array.isArray(data) && data[0]?.generated_text) {
+            responseText = data[0].generated_text.trim()
+          } else if (typeof data === 'string') {
+            responseText = data.trim()
+          } else if (data.generated_text) {
+            responseText = data.generated_text.trim()
+          } else if (data[0]?.generated_text) {
+            responseText = data[0].generated_text.trim()
+          }
+        } else {
+          // Log error for debugging
+          const errorData = await hfResponse.text()
+          console.error('Hugging Face API error:', hfResponse.status, errorData)
         }
       } catch (error) {
         console.error('Hugging Face API error:', error)
