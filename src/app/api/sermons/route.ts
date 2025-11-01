@@ -129,12 +129,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Sermon not found' }, { status: 404 })
     }
 
-    // Broadcast update to trigger refresh on public pages
-    if (typeof window !== 'undefined') {
-      const { broadcastAdminUpdate, ADMIN_UPDATE_TYPES } = await import('@/lib/admin-broadcast')
-      broadcastAdminUpdate(ADMIN_UPDATE_TYPES.SERMON)
-    }
-
     return NextResponse.json({ message: 'Sermon deleted successfully' })
   } catch (error) {
     console.error('Error deleting sermon:', error)
