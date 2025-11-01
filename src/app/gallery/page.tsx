@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
 import { useSettings } from "@/components/settings-provider"
+import { useRealtimeData } from "@/hooks/use-realtime-data"
 
 interface GalleryImage {
   id: string
@@ -29,29 +30,19 @@ export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null)
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([])
-  const [loading, setLoading] = useState(true)
 
-  // Fetch gallery images from API
-  useEffect(() => {
-    const fetchGalleryImages = async () => {
-      try {
-        const response = await fetch('/api/gallery')
-        if (response.ok) {
-          const data = await response.json()
-          setGalleryImages(data)
-        } else {
-          console.error('Failed to fetch gallery images')
-        }
-      } catch (error) {
-        console.error('Error fetching gallery images:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Real-time data fetching with automatic refresh
+  const { data: galleryImagesData, loading } = useRealtimeData<GalleryImage[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/gallery')
+      if (!response.ok) throw new Error('Failed to fetch gallery images')
+      return await response.json()
+    },
+    interval: 30000, // Refresh every 30 seconds
+    enabled: true
+  })
 
-    fetchGalleryImages()
-  }, [])
+  const galleryImages = galleryImagesData || []
 
   const handleSubmitPhotos = () => {
     toast({

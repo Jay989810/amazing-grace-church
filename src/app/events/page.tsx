@@ -7,6 +7,7 @@ import { Calendar, Clock, MapPin, Users, Filter, Search, Mail } from "lucide-rea
 import { formatDate, formatTime } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
+import { useRealtimeData } from "@/hooks/use-realtime-data"
 
 interface Event {
   id: string
@@ -27,29 +28,19 @@ export default function EventsPage() {
   const { toast } = useToast()
   const [selectedType, setSelectedType] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
 
-  // Fetch events from API
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch('/api/events')
-        if (response.ok) {
-          const data = await response.json()
-          setEvents(data)
-        } else {
-          console.error('Failed to fetch events')
-        }
-      } catch (error) {
-        console.error('Error fetching events:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Real-time data fetching with automatic refresh
+  const { data: eventsData, loading } = useRealtimeData<Event[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/events')
+      if (!response.ok) throw new Error('Failed to fetch events')
+      return await response.json()
+    },
+    interval: 30000, // Refresh every 30 seconds
+    enabled: true
+  })
 
-    fetchEvents()
-  }, [])
+  const events = eventsData || []
 
   const eventTypes = ["All", "Conference", "Community Service", "Prayer Meeting", "Bible Study", "Special Event"]
 

@@ -7,6 +7,7 @@ import { Play, Download, Calendar, User, Filter, Search, Mail, Headphones, Video
 import { formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
+import { useRealtimeData } from "@/hooks/use-realtime-data"
 
 interface Sermon {
   id: string
@@ -30,34 +31,22 @@ export default function SermonsPage() {
   const { toast } = useToast()
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchTerm, setSearchTerm] = useState("")
-  const [sermons, setSermons] = useState<Sermon[]>([])
-  const [loading, setLoading] = useState(true)
   const [playingSermon, setPlayingSermon] = useState<string | null>(null)
 
-  // Fetch sermons from API
-  useEffect(() => {
-    const fetchSermons = async () => {
-      try {
-        const response = await fetch('/api/sermons')
-        if (response.ok) {
-          const data = await response.json()
-          console.log('Fetched sermons (raw):', JSON.stringify(data, null, 2))
-          // Filter out incomplete sermons
-          const validSermons = data.filter((sermon: any) => sermon.title && sermon.speaker)
-          console.log('Valid sermons:', validSermons)
-          setSermons(validSermons)
-        } else {
-          console.error('Failed to fetch sermons')
-        }
-      } catch (error) {
-        console.error('Error fetching sermons:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Real-time data fetching with automatic refresh
+  const { data: sermonsData, loading } = useRealtimeData<Sermon[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/sermons')
+      if (!response.ok) throw new Error('Failed to fetch sermons')
+      const data = await response.json()
+      // Filter out incomplete sermons
+      return data.filter((sermon: any) => sermon.title && sermon.speaker)
+    },
+    interval: 30000, // Refresh every 30 seconds
+    enabled: true
+  })
 
-    fetchSermons()
-  }, [])
+  const sermons = sermonsData || []
 
   const categories = ["All", "Sunday Service", "Mid-week", "Bible Study", "Prayer Meeting", "Special Event"]
 

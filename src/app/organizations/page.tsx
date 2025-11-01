@@ -8,6 +8,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { OptimizedImage } from "@/components/optimized-image"
 import { SkeletonList } from "@/components/skeleton-loader"
+import { useRealtimeData } from "@/hooks/use-realtime-data"
 
 interface Organization {
   id: string
@@ -23,28 +24,18 @@ interface Organization {
 }
 
 export default function OrganizationsPage() {
-  const [organizations, setOrganizations] = useState<Organization[]>([])
-  const [loading, setLoading] = useState(true)
+  // Real-time data fetching with automatic refresh
+  const { data: organizationsData, loading } = useRealtimeData<Organization[]>({
+    fetchFn: async () => {
+      const response = await fetch('/api/organizations')
+      if (!response.ok) throw new Error('Failed to fetch organizations')
+      return await response.json()
+    },
+    interval: 30000, // Refresh every 30 seconds
+    enabled: true
+  })
 
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        const response = await fetch('/api/organizations')
-        if (response.ok) {
-          const data = await response.json()
-          setOrganizations(data)
-        } else {
-          console.error('Failed to fetch organizations')
-        }
-      } catch (error) {
-        console.error('Error fetching organizations:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchOrganizations()
-  }, [])
+  const organizations = organizationsData || []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-12 px-4 sm:px-6 lg:px-8">

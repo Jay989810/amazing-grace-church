@@ -101,6 +101,8 @@ export default function AdminOrganizationsPage() {
           contactEmail: '',
           imageUrl: ''
         })
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.ORGANIZATION)
         toast({
           title: "Success",
           description: "Organization created successfully"
@@ -141,6 +143,8 @@ export default function AdminOrganizationsPage() {
           contactEmail: '',
           imageUrl: ''
         })
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.ORGANIZATION)
         toast({
           title: "Success",
           description: "Organization updated successfully"
@@ -168,6 +172,8 @@ export default function AdminOrganizationsPage() {
       
       if (response.ok) {
         setOrganizations(organizations.filter(org => org.id !== id))
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.ORGANIZATION)
         toast({
           title: "Success",
           description: "Organization deleted successfully"

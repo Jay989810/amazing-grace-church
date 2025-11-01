@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/select"
 import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award, DollarSign, Building2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
+import { broadcastAdminUpdate, ADMIN_UPDATE_TYPES } from "@/lib/admin-broadcast"
 
 // Icon mapping for core beliefs
 const iconMap: Record<string, any> = {
@@ -396,6 +397,8 @@ const handleCreateEvent = async () => {
         const newEvent = await response.json()
         setEvents([newEvent, ...events])
       setEventForm({ title: '', description: '', date: '', time: '', venue: '', type: 'Service', image: '' })
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.EVENT)
         toast({
           title: "Success",
           description: "Event created successfully"
@@ -423,6 +426,8 @@ const handleUpdateEvent = async () => {
         setEvents(events.map(e => e.id === editingItem.id ? updatedEvent : e))
         setIsEditing(false)
         setEditingItem(null)
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.EVENT)
         toast({
           title: "Success",
           description: "Event updated successfully"
@@ -447,6 +452,8 @@ const handleUpdateEvent = async () => {
       
       if (response.ok) {
         setEvents(events.filter(e => e.id !== id))
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.EVENT)
         toast({
           title: "Success",
           description: "Event deleted successfully"
@@ -778,6 +785,8 @@ const startEditEvent = (event: Event) => {
         if (imageToDelete) {
           setUploadedFiles(prev => prev.filter(f => f.url !== imageToDelete.image_url))
         }
+        // Broadcast update to trigger refresh on public pages
+        broadcastAdminUpdate(ADMIN_UPDATE_TYPES.GALLERY)
         toast({
           title: "Success",
           description: "Gallery image deleted successfully"

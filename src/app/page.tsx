@@ -12,6 +12,7 @@ import { SkeletonCard } from "@/components/skeleton-loader"
 import { ChurchLogo } from "@/components/church-logo"
 import { useSettings } from "@/components/settings-provider"
 import { formatDate } from "@/lib/utils"
+import { useRealtimeData } from "@/hooks/use-realtime-data"
 
 interface Sermon {
   id: string
