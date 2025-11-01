@@ -3,11 +3,17 @@ import { getCollection } from '@/lib/mongodb'
 import { GivingTransactionDocument } from '@/lib/models'
 import Flutterwave from 'flutterwave-node-v3'
 
-// Initialize payment providers
-const flw = new Flutterwave(
-  process.env.FLUTTERWAVE_PUBLIC_KEY || '',
-  process.env.FLUTTERWAVE_SECRET_KEY || ''
-)
+// Lazy initialization function for Flutterwave
+function getFlutterwaveClient() {
+  const publicKey = process.env.FLUTTERWAVE_PUBLIC_KEY || ''
+  const secretKey = process.env.FLUTTERWAVE_SECRET_KEY || ''
+  
+  if (!publicKey || !secretKey) {
+    throw new Error('Flutterwave API keys are not configured')
+  }
+  
+  return new Flutterwave(publicKey, secretKey)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,6 +67,7 @@ export async function POST(request: NextRequest) {
 
     if (paymentProvider === 'flutterwave') {
       try {
+        const flw = getFlutterwaveClient()
         const flwResponse = await flw.PaymentLink.create({
           tx_ref: paymentReference,
           amount: amountNum,
