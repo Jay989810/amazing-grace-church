@@ -22,11 +22,16 @@ export async function GET() {
     const coreBeliefs = await beliefsCollection.find({}).sort({ order: 1 }).toArray() as CoreBeliefDocument[]
     const leadership = await leadershipCollection.find({}).sort({ order: 1 }).toArray() as LeadershipMemberDocument[]
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       sections: aboutSections.map(aboutPageDocumentToApi),
       coreBeliefs: coreBeliefs.map(coreBeliefDocumentToApi),
       leadership: leadership.map(leadershipMemberDocumentToApi)
     })
+    
+    // Add caching headers for better performance
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
+    
+    return response
   } catch (error) {
     console.error('Error fetching about page content:', error)
     return NextResponse.json({ error: 'Failed to fetch about page content' }, { status: 500 })

@@ -15,7 +15,11 @@ export async function GET() {
 
     const apiOrganizations = organizations.map(organizationDocumentToApi)
     
-    return NextResponse.json(apiOrganizations)
+    // Add caching headers for better performance
+    const response = NextResponse.json(apiOrganizations)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+    
+    return response
   } catch (error: any) {
     console.error('Error fetching organizations:', error)
     return NextResponse.json(

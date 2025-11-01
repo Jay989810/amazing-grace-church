@@ -12,7 +12,8 @@
     "test-mongodb": "tsx scripts/test-mongodb.ts",
     "test-mongodb-simple": "tsx scripts/test-mongodb-simple.ts",
     "test-auth": "tsx scripts/test-auth-setup.ts",
-    "create-admin": "tsx scripts/create-admin-user.ts"
+    "create-admin": "tsx scripts/create-admin-user.ts",
+    "create-indexes": "tsx scripts/create-indexes.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.919.0",

@@ -215,10 +215,13 @@ export default function GalleryPage() {
                 return (
                   <Card key={image.id} className="overflow-hidden group cursor-pointer" onClick={() => setSelectedImage(image)}>
                     <div className="aspect-video bg-muted relative overflow-hidden">
-                      <img
+                      <OptimizedImage
                         src={imageUrl}
                         alt={imageTitle}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        fill
+                        objectFit="cover"
+                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                        className="group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
                         <Eye className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

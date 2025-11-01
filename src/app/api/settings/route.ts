@@ -42,10 +42,15 @@ export async function GET() {
           keywords: "church, baptist, kaduna, nigeria, worship, fellowship, sermons, amazing grace"
         }
       }
-      return NextResponse.json(defaultSettings)
+      const response = NextResponse.json(defaultSettings)
+      response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600')
+      return response
     }
     
-    return NextResponse.json(settings.data)
+    const response = NextResponse.json(settings.data)
+    // Cache settings for 5 minutes, stale-while-revalidate for 1 hour
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600')
+    return response
   } catch (error) {
     console.error('Error fetching settings:', error)
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })

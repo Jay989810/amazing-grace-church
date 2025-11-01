@@ -13,7 +13,12 @@ export async function GET() {
       .toArray() as GalleryImageDocument[]
 
     const apiImages = images.map(galleryImageDocumentToApi)
-    return NextResponse.json(apiImages)
+    
+    // Add caching headers for better performance
+    const response = NextResponse.json(apiImages)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300')
+    
+    return response
   } catch (error) {
     console.error('Error fetching gallery images:', error)
     return NextResponse.json({ error: 'Failed to fetch gallery images' }, { status: 500 })

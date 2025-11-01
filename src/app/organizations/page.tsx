@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Users, Mail, User, Image as ImageIcon } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { OptimizedImage } from "@/components/optimized-image"
+import { SkeletonList } from "@/components/skeleton-loader"
 
 interface Organization {
   id: string
@@ -63,10 +65,7 @@ export default function OrganizationsPage() {
 
         {/* Organizations Grid */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-muted-foreground mt-4">Loading organizations...</p>
-          </div>
+          <SkeletonList count={6} />
         ) : organizations.length === 0 ? (
           <div className="text-center py-12">
             <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -81,11 +80,12 @@ export default function OrganizationsPage() {
               <Card key={org.id} className="hover:shadow-lg transition-shadow overflow-hidden">
                 {org.imageUrl ? (
                   <div className="relative w-full h-48 bg-muted">
-                    <Image
+                    <OptimizedImage
                       src={org.imageUrl}
                       alt={org.name}
                       fill
-                      className="object-cover"
+                      objectFit="cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                   </div>
                 ) : (

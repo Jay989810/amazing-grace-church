@@ -7,6 +7,8 @@ import { Play, Calendar, Users, MapPin, Download, Clock, Mail, Headphones, Video
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
+import { OptimizedImage } from "@/components/optimized-image"
+import { SkeletonCard } from "@/components/skeleton-loader"
 import { ChurchLogo } from "@/components/church-logo"
 import { useSettings } from "@/components/settings-provider"
 import { formatDate } from "@/lib/utils"
@@ -296,9 +298,10 @@ const getVideoUrl = (sermon: Sermon) => {
             <p className="text-lg text-muted-foreground">Watch, listen, or download our latest messages</p>
           </div>
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-4">Loading sermons...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : recentSermons.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -306,11 +309,12 @@ const getVideoUrl = (sermon: Sermon) => {
                 <Card key={sermon.id} className="overflow-hidden">
                   <div className="aspect-video bg-muted relative">
                     {sermon.thumbnail && sermon.thumbnail !== '#' ? (
-                      <Image
+                      <OptimizedImage
                         src={sermon.thumbnail}
                         alt={sermon.title}
                         fill
-                        className="object-cover"
+                        objectFit="cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -453,9 +457,10 @@ const getVideoUrl = (sermon: Sermon) => {
             <p className="text-lg text-muted-foreground">Join us for these special occasions</p>
           </div>
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-4">Loading events...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <SkeletonCard key={i} />
+              ))}
             </div>
           ) : recentEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -463,11 +468,12 @@ const getVideoUrl = (sermon: Sermon) => {
                 <Card key={event.id} className="overflow-hidden">
                   {event.image && event.image !== '#' && (
                     <div className="aspect-video bg-muted relative">
-                      <Image
+                      <OptimizedImage
                         src={event.image}
                         alt={event.title}
                         fill
-                        className="object-cover"
+                        objectFit="cover"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </div>
                   )}
@@ -520,9 +526,10 @@ const getVideoUrl = (sermon: Sermon) => {
             <p className="text-lg text-muted-foreground">See what's happening in our community</p>
           </div>
           {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="text-muted-foreground mt-4">Loading gallery...</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="aspect-video bg-muted rounded-lg animate-pulse"></div>
+              ))}
             </div>
           ) : recentGallery.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -535,12 +542,13 @@ const getVideoUrl = (sermon: Sermon) => {
                 return (
                 <Card key={image.id} className="overflow-hidden group hover:shadow-lg transition-shadow">
                   <div className="aspect-video bg-muted relative">
-                    <Image
+                    <OptimizedImage
                       src={displayUrl}
                       alt={image.title}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      unoptimized
+                      objectFit="cover"
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      className="group-hover:scale-105 transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
