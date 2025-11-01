@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
         )
 
         // Get transaction details and send receipt
-        const transaction = await transactionsCollection.findOne({ payment_reference: tx_ref })
+        const transaction = await transactionsCollection.findOne({ payment_reference: tx_ref }) as any
         if (transaction && !transaction.receipt_sent) {
-          await sendReceiptEmail(transaction)
+          await sendReceiptEmail(transaction as any)
           await transactionsCollection.updateOne(
             { payment_reference: tx_ref },
             { $set: { receipt_sent: true } }
@@ -65,9 +65,9 @@ export async function POST(request: NextRequest) {
         )
 
         // Get transaction details and send receipt
-        const transaction = await transactionsCollection.findOne({ payment_reference: reference })
+        const transaction = await transactionsCollection.findOne({ payment_reference: reference }) as any
         if (transaction && !transaction.receipt_sent) {
-          await sendReceiptEmail(transaction)
+          await sendReceiptEmail(transaction as any)
           await transactionsCollection.updateOne(
             { payment_reference: reference },
             { $set: { receipt_sent: true } }

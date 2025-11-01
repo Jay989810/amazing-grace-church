@@ -316,9 +316,13 @@ export default function AdminGivingPage() {
                         </td>
                         <td className="p-3">
                           {transaction.receiptSent ? (
-                            <Mail className="w-4 h-4 text-green-500" title="Receipt sent" />
+                            <span title="Receipt sent">
+                              <Mail className="w-4 h-4 text-green-500" />
+                            </span>
                           ) : (
-                            <Mail className="w-4 h-4 text-gray-400" title="Receipt not sent" />
+                            <span title="Receipt not sent">
+                              <Mail className="w-4 h-4 text-gray-400" />
+                            </span>
                           )}
                         </td>
                       </tr>

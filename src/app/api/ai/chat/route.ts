@@ -8,9 +8,11 @@ const AI_MODEL = process.env.AI_MODEL || 'mistralai/Mistral-7B-Instruct-v0.2' //
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY || ''
 
 export async function POST(request: NextRequest) {
+  let message = ''
   try {
     const body = await request.json()
-    const { message, conversationHistory = [] } = body
+    message = body.message || ''
+    const { conversationHistory = [] } = body
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json(
@@ -18,9 +20,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+    
+    const userMessage = message
 
     // Get contextual knowledge based on the query
-    const contextualKnowledge = getContextualKnowledge(message)
+    const contextualKnowledge = getContextualKnowledge(userMessage)
     
     // Build the prompt with context
     const systemPrompt = `You are a helpful AI assistant for Amazing Grace Baptist Church. Use the following information to answer questions accurately and helpfully.
@@ -48,7 +52,7 @@ Instructions:
 Conversation history:
 ${conversationText}
 
-User: ${message}
+User: ${userMessage}
 Assistant:`
 
     // Try Hugging Face API first
@@ -99,7 +103,7 @@ Assistant:`
 
     // Fallback to rule-based responses if API fails or no key
     if (!responseText) {
-      responseText = getFallbackResponse(message)
+      responseText = getFallbackResponse(userMessage)
     }
 
     // Clean up the response
@@ -120,7 +124,7 @@ Assistant:`
     console.error('AI chat error:', error)
     
     // Fallback response
-    const fallbackResponse = getFallbackResponse(body.message || '')
+    const fallbackResponse = getFallbackResponse(message || '')
     
     return NextResponse.json({
       response: fallbackResponse || "I apologize, but I'm having trouble processing your request right now. Please contact the church office at info@amazinggracechurch.org for assistance.",
