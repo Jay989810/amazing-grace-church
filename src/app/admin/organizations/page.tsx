@@ -11,6 +11,7 @@ import { Users, Plus, Edit, Trash2, Save, X, Image as ImageIcon } from "lucide-r
 import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
 import { useRouter } from "next/navigation"
+import { broadcastAdminUpdate, ADMIN_UPDATE_TYPES } from "@/lib/admin-broadcast"
 
 interface Organization {
   id: string
