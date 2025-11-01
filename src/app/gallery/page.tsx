@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
 import { useSettings } from "@/components/settings-provider"
 import { useRealtimeData } from "@/hooks/use-realtime-data"
+import { OptimizedImage } from "@/components/optimized-image"
 
 interface GalleryImage {
   id: string
