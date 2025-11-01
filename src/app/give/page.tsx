@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Heart, CheckCircle, Loader2 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 
-export default function GivePage() {
+function GivePageContent() {
   const { toast } = useToast()
   const searchParams = useSearchParams()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -306,6 +306,21 @@ export default function GivePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function GivePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <GivePageContent />
+    </Suspense>
   )
 }
 
