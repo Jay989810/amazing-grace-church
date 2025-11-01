@@ -56,7 +56,7 @@ export function OptimizedImage({
           src={src}
           alt={alt}
           fill
-          className={`${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          className={`${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 ${className}`}
           priority={priority}
           sizes={sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
           onLoad={() => setIsLoading(false)}
@@ -72,7 +72,7 @@ export function OptimizedImage({
           alt={alt}
           width={width}
           height={height}
-          className={`${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+          className={`${objectFit === 'cover' ? 'object-cover' : objectFit === 'contain' ? 'object-contain' : ''} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 ${className}`}
           priority={priority}
           sizes={sizes}
           onLoad={() => setIsLoading(false)}
