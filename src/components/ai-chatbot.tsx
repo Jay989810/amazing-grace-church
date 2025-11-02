@@ -121,14 +121,14 @@ export function AIChatbot() {
       {/* Chat Button */}
       {!isOpen && (
         <div
-          className="fixed bottom-6 right-6 z-50"
+          className="fixed bottom-6 right-6 z-50 sm:bottom-4 sm:right-4"
           style={{
             filter: 'drop-shadow(0 10px 40px rgba(0, 0, 0, 0.3)) drop-shadow(0 0 20px rgba(59, 130, 246, 0.5))'
           }}
         >
           <Button
             onClick={() => setIsOpen(true)}
-            className="h-16 w-16 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 group"
+            className="h-16 w-16 rounded-full shadow-2xl hover:scale-110 transition-all duration-300 group sm:h-14 sm:w-14"
             size="lg"
             style={{
               background: 'linear-gradient(135deg, hsl(221.2, 83.2%, 53.3%) 0%, hsl(221.2, 83.2%, 48%) 100%)',
@@ -138,9 +138,9 @@ export function AIChatbot() {
             }}
           >
             <div className="relative">
-              <Bot className="h-7 w-7 animate-pulse group-hover:animate-none drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))' }} />
-              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white shadow-lg animate-ping"></div>
-              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white shadow-lg"></div>
+              <Bot className="h-7 w-7 animate-pulse group-hover:animate-none drop-shadow-lg sm:h-6 sm:w-6" style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))' }} />
+              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white shadow-lg animate-ping sm:h-3 sm:w-3"></div>
+              <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white shadow-lg sm:h-3 sm:w-3"></div>
             </div>
             <span className="sr-only">Open AI Chat Assistant</span>
           </Button>
@@ -149,17 +149,17 @@ export function AIChatbot() {
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-[400px] h-[600px] shadow-2xl z-50 flex flex-col md:w-[380px] md:h-[550px] sm:w-[calc(100vw-2rem)] sm:h-[calc(100vh-8rem)]">
+        <Card className="fixed bottom-4 right-4 w-[400px] h-[600px] shadow-2xl z-50 flex flex-col md:w-[380px] md:h-[550px] sm:bottom-0 sm:right-0 sm:w-screen sm:h-screen sm:rounded-none sm:max-w-full sm:max-h-full">
           <CardHeader className="flex flex-row items-center justify-between pb-3 border-b">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Church AI Assistant</CardTitle>
+              <CardTitle className="text-lg text-foreground">Church AI Assistant</CardTitle>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8"
+              className="h-8 w-8 text-foreground hover:bg-accent"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -176,24 +176,34 @@ export function AIChatbot() {
                   }`}
                 >
                   {message.role === 'assistant' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
                       <Bot className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    className={`max-w-[85%] sm:max-w-[90%] rounded-lg px-4 py-2 ${
                       message.role === 'user'
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                        : 'bg-muted dark:bg-muted/80 border border-border dark:border-border/50'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className="text-xs opacity-70 mt-1">
+                    <p className={`text-sm whitespace-pre-wrap ${
+                      message.role === 'user' 
+                        ? 'text-primary-foreground' 
+                        : 'text-foreground'
+                    }`}>
+                      {message.content}
+                    </p>
+                    <p className={`text-xs mt-1 ${
+                      message.role === 'user'
+                        ? 'text-primary-foreground/80'
+                        : 'text-muted-foreground'
+                    }`}>
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                   {message.role === 'user' && (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
                       <User className="h-4 w-4 text-primary" />
                     </div>
                   )}
@@ -202,11 +212,11 @@ export function AIChatbot() {
               
               {isLoading && (
                 <div className="flex gap-3 justify-start">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
                     <Bot className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="bg-muted rounded-lg px-4 py-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                  <div className="bg-muted dark:bg-muted/80 border border-border dark:border-border/50 rounded-lg px-4 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   </div>
                 </div>
               )}
@@ -216,15 +226,15 @@ export function AIChatbot() {
 
             {/* Suggested Questions */}
             {messages.length === 1 && (
-              <div className="px-4 pb-2 border-t pt-2">
-                <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
+              <div className="px-4 pb-2 border-t border-border pt-2 bg-background">
+                <p className="text-xs font-medium text-foreground mb-2">Suggested questions:</p>
                 <div className="flex flex-wrap gap-2">
                   {suggestedQuestions.slice(0, 3).map((question, index) => (
                     <Button
                       key={index}
                       variant="outline"
                       size="sm"
-                      className="text-xs h-auto py-1 px-2"
+                      className="text-xs h-auto py-1 px-2 text-foreground border-border hover:bg-accent hover:text-accent-foreground"
                       onClick={() => {
                         setInput(question)
                         setTimeout(() => handleSend(), 100)
@@ -238,7 +248,7 @@ export function AIChatbot() {
             )}
 
             {/* Input */}
-            <div className="p-4 border-t">
+            <div className="p-4 border-t border-border bg-background">
               <div className="flex gap-2">
                 <Input
                   ref={inputRef}
@@ -247,12 +257,13 @@ export function AIChatbot() {
                   onKeyPress={handleKeyPress}
                   placeholder="Ask me anything about the church..."
                   disabled={isLoading}
-                  className="flex-1"
+                  className="flex-1 text-foreground bg-background border-input placeholder:text-muted-foreground"
                 />
                 <Button
                   onClick={handleSend}
                   disabled={!input.trim() || isLoading}
                   size="icon"
+                  className="text-foreground"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -261,7 +272,7 @@ export function AIChatbot() {
                   )}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
+              <p className="text-xs text-muted-foreground dark:text-muted-foreground mt-2 text-center">
                 Powered by open-source AI • Free to use
               </p>
             </div>
