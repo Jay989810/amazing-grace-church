@@ -310,7 +310,7 @@ const getVideoUrl = (sermon: Sermon) => {
             </div>
           ) : recentSermons.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recentSermons.map((sermon) => (
+              {recentSermons.map((sermon, index) => (
                 <Card key={sermon.id} className="overflow-hidden">
                   <div className="aspect-video bg-muted relative">
                     {sermon.thumbnail && sermon.thumbnail !== '#' ? (
@@ -319,6 +319,7 @@ const getVideoUrl = (sermon: Sermon) => {
                         alt={sermon.title}
                         fill
                         objectFit="cover"
+                        priority={index === 0}
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     ) : (
@@ -469,7 +470,7 @@ const getVideoUrl = (sermon: Sermon) => {
             </div>
           ) : recentEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recentEvents.map((event) => (
+              {recentEvents.map((event, index) => (
                 <Card key={event.id} className="overflow-hidden">
                   {event.image && event.image !== '#' && (
                     <div className="aspect-video bg-muted relative">
@@ -478,6 +479,7 @@ const getVideoUrl = (sermon: Sermon) => {
                         alt={event.title}
                         fill
                         objectFit="cover"
+                        priority={index === 0}
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
                     </div>
@@ -538,7 +540,7 @@ const getVideoUrl = (sermon: Sermon) => {
             </div>
           ) : recentGallery.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {recentGallery.map((image) => {
+              {recentGallery.map((image, index) => {
                 const rawUrl = (image as any).image_url || (image as any).imageUrl || (image as any).url || ''
                 let displayUrl = rawUrl
                 try {
@@ -552,6 +554,7 @@ const getVideoUrl = (sermon: Sermon) => {
                       alt={image.title}
                       fill
                       objectFit="cover"
+                      priority={index === 0}
                       sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                       className="group-hover:scale-105 transition-transform duration-300"
                     />

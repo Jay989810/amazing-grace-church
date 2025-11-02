@@ -23,6 +23,9 @@ interface GalleryImage {
   originalName?: string
   url?: string
   uploadedAt?: string
+  // Validation flags
+  isValidFormat?: boolean
+  isCorrupted?: boolean
 }
 
 export default function GalleryPage() {
@@ -68,6 +71,11 @@ export default function GalleryPage() {
   const allCategories = [...categories, ...uniqueAlbums.filter(album => !categories.includes(album))]
 
   const filteredImages = galleryImages.filter(image => {
+    // Hide corrupted or invalid format images from gallery view
+    if (image.isCorrupted || image.isValidFormat === false) {
+      return false
+    }
+    
     const imageTitle = image.title || image.originalName || ''
     const imageAlbum = image.album || ''
     const imageDescription = image.description || ''
@@ -199,10 +207,12 @@ export default function GalleryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredImages.map((image) => {
+              {filteredImages.map((image, index) => {
                 const imageUrl = getImageUrl(image)
                 const imageTitle = getImageTitle(image)
                 const imageDate = getImageDate(image)
+                // Priority loading for first 8 images (above the fold)
+                const isPriority = index < 8
                 
                 return (
                   <Card key={image.id} className="overflow-hidden group cursor-pointer" onClick={() => setSelectedImage(image)}>
@@ -212,7 +222,8 @@ export default function GalleryPage() {
                         alt={imageTitle}
                         fill
                         objectFit="cover"
-                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                        priority={isPriority}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                         className="group-hover:scale-105 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -257,11 +268,14 @@ export default function GalleryPage() {
       {selectedImage && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={() => setSelectedImage(null)}>
           <div className="max-w-4xl max-h-full bg-background rounded-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="aspect-video bg-muted relative">
-              <img
+            <div className="aspect-video bg-muted relative max-h-[80vh]">
+              <OptimizedImage
                 src={getImageUrl(selectedImage)}
                 alt={getImageTitle(selectedImage)}
-                className="w-full h-full object-contain"
+                fill
+                objectFit="contain"
+                priority={true}
+                sizes="(max-width: 768px) 100vw, (max-width: 1024px) 90vw, 80vw"
               />
             </div>
             <div className="p-6">

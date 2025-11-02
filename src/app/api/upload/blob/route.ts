@@ -35,8 +35,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type based on category
-    if (type === 'gallery' && !file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image files allowed for gallery' }, { status: 400 })
+    if ((type === 'gallery' || type === 'organization' || type === 'settings') && !file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Only image files allowed' }, { status: 400 })
+    }
+    
+    // For gallery, organization, and settings, only allow JPG and PNG
+    if ((type === 'gallery' || type === 'organization' || type === 'settings') && file.type.startsWith('image/')) {
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png']
+      const fileExtension = file.name.toLowerCase().split('.').pop()
+      const isValidMimeType = validImageTypes.includes(file.type.toLowerCase())
+      const isValidExtension = fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png'
+      
+      if (!isValidMimeType && !isValidExtension) {
+        return NextResponse.json({ error: 'Only JPG and PNG image files are allowed' }, { status: 400 })
+      }
     }
 
     if (type === 'sermon' && !file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
@@ -74,25 +86,45 @@ export async function POST(request: NextRequest) {
     
     const result = await filesCollection.insertOne(fileDoc)
 
-    // If this is a gallery image, also create an entry in gallery_images collection
+    // If this is a gallery image (not organization or settings), create an entry in gallery_images collection
+    // Only gallery type images should appear in the public gallery
     if (type === 'gallery') {
       try {
-        const galleryCollection = await getCollection('gallery_images')
-        const galleryDoc = {
-          title: metadata?.title || file.name,
-          description: metadata?.description || '',
-          image_url: blob.url,
-          album: metadata?.album || metadata?.category || 'Other',
-          photographer: metadata?.photographer || '',
-          date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+        // Validate image format - only allow JPG and PNG
+        const urlLower = blob.url.toLowerCase()
+        const mimeLower = file.type.toLowerCase()
+        const isValidFormat = 
+          urlLower.endsWith('.jpg') || 
+          urlLower.endsWith('.jpeg') || 
+          urlLower.endsWith('.png') ||
+          mimeLower === 'image/jpeg' || 
+          mimeLower === 'image/jpg' || 
+          mimeLower === 'image/png'
+        
+        if (!isValidFormat) {
+          console.warn('Invalid image format uploaded:', { fileName: file.name, mimeType: file.type, url: blob.url })
+          // Still save to uploaded_files but mark as invalid
+          // Don't add to gallery_images collection
+        } else {
+          const galleryCollection = await getCollection('gallery_images')
+          const galleryDoc = {
+            title: metadata?.title || file.name,
+            description: metadata?.description || '',
+            image_url: blob.url,
+            album: metadata?.album || metadata?.category || 'Other',
+            photographer: metadata?.photographer || '',
+            date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+          await galleryCollection.insertOne(galleryDoc)
         }
-        await galleryCollection.insertOne(galleryDoc)
       } catch (galleryError) {
         console.error('Error creating gallery entry:', galleryError)
       }
     }
+    // Note: organization and settings type images are NOT added to gallery_images collection
+    // This prevents them from appearing in the public gallery
 
     return NextResponse.json({
       success: true,

@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Upload, X, File, Image, Music, Video, CheckCircle, AlertCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { put } from '@vercel/blob'
+import { validateFileSize } from '@/lib/performance-monitor'
 
 interface FileUploadProps {
-  type: 'sermon' | 'gallery' | 'settings'
+  type: 'sermon' | 'gallery' | 'settings' | 'organization'
   onUploadComplete?: (file: any) => void
   accept?: string
   maxSize?: number // in MB
@@ -44,12 +45,43 @@ export function FileUpload({
   const { toast } = useToast()
 
   const validateFile = (file: File): string | null => {
+    // Check file size against maxSize parameter
     if (file.size > maxSize * 1024 * 1024) {
-      return `File size must be less than ${maxSize}MB`
+      return `File size must be less than ${maxSize}MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+    }
+    
+    // Use performance monitor for additional validation
+    const resourceType = type === 'gallery' || type === 'organization' || type === 'settings' 
+      ? 'image' 
+      : file.type.startsWith('video/') 
+      ? 'video' 
+      : file.type.startsWith('audio/') 
+      ? 'audio' 
+      : 'document'
+    
+    const sizeValidation = validateFileSize(file, resourceType)
+    if (!sizeValidation.valid) {
+      return sizeValidation.error || 'File size validation failed'
+    }
+    
+    // For gallery, organization, and settings types, only allow JPG and PNG images
+    if ((type === 'gallery' || type === 'organization' || type === 'settings') && file.type.startsWith('image/')) {
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png']
+      const fileExtension = file.name.toLowerCase().split('.').pop()
+      const isValidMimeType = validImageTypes.includes(file.type.toLowerCase())
+      const isValidExtension = fileExtension === 'jpg' || fileExtension === 'jpeg' || fileExtension === 'png'
+      
+      if (!isValidMimeType && !isValidExtension) {
+        return 'Only JPG and PNG image files are allowed'
+      }
     }
     
     if (type === 'gallery' && !file.type.startsWith('image/')) {
       return 'Only image files are allowed for gallery'
+    }
+    
+    if (type === 'organization' && !file.type.startsWith('image/')) {
+      return 'Only image files are allowed for organization'
     }
     
     if (type === 'sermon' && !file.type.startsWith('audio/') && !file.type.startsWith('video/')) {
@@ -369,12 +401,13 @@ export function FileUpload({
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold">Upload {type === 'gallery' ? 'Images' : type === 'sermon' ? 'Audio/Video' : 'Files'}</h3>
+              <h3 className="text-lg font-semibold">Upload {type === 'gallery' || type === 'organization' || type === 'settings' ? 'Images' : type === 'sermon' ? 'Audio/Video' : 'Files'}</h3>
               <p className="text-sm text-muted-foreground">
                 Drag and drop files here, or click to browse
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Max size: {maxSize}MB {type === 'gallery' ? '(Images only)' : type === 'sermon' ? '(Audio/Video only)' : ''}
+                Max size: {maxSize}MB 
+                {type === 'gallery' || type === 'organization' || type === 'settings' ? ' (JPG/PNG only)' : type === 'sermon' ? ' (Audio/Video only)' : ''}
                 <br />
                 <span className="text-xs">All files upload directly to S3</span>
               </p>

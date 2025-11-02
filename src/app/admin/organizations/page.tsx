@@ -234,9 +234,9 @@ export default function AdminOrganizationsPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-8 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Manage Organizations</h1>
-          <p className="text-muted-foreground">Add, edit, or remove church organizations and sub-bodies</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">Manage Organizations</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">Add, edit, or remove church organizations and sub-bodies</p>
         </div>
 
         {/* Add/Edit Form */}
@@ -303,8 +303,8 @@ export default function AdminOrganizationsPage() {
             <div>
               <Label>Organization Image</Label>
               <FileUpload
-                type="gallery"
-                accept="image/*"
+                type="organization"
+                accept="image/jpeg,image/jpg,image/png"
                 maxSize={5}
                 multiple={false}
                 onUploadComplete={handleImageUpload}
@@ -381,7 +381,7 @@ export default function AdminOrganizationsPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {organizations.map((org) => (
                   <Card key={org.id} className="overflow-hidden">
                     {org.imageUrl ? (

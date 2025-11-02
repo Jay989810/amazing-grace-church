@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select } from "@/components/ui/select"
-import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award, DollarSign, Building2 } from "lucide-react"
+import { LogOut, User, Plus, Edit, Trash2, Eye, Calendar, Music, Image, Mail, Settings, Save, X, Upload, Globe, Phone, MapPin, Clock, FileText, Heart, BookOpen, Users, Award, DollarSign, Building2, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { FileUpload } from "@/components/file-upload"
 import { broadcastAdminUpdate, ADMIN_UPDATE_TYPES } from "@/lib/admin-broadcast"
@@ -881,12 +881,12 @@ const startEditEvent = (event: Event) => {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <div className="flex flex-col gap-4 mb-6 sm:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-primary">Admin Dashboard</h1>
-            <p className="text-muted-foreground">Welcome back, {session.user?.name || 'Admin'}</p>
+            <p className="text-sm sm:text-base text-muted-foreground">Welcome back, {session.user?.name || 'Admin'}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline" asChild className="w-full sm:w-auto">
               <a href="/admin/giving">
                 <DollarSign className="w-4 h-4 mr-2" />
@@ -907,24 +907,24 @@ const startEditEvent = (event: Event) => {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-1 mb-6 bg-muted p-1 rounded-lg">
+        <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 bg-muted p-1 rounded-lg">
           {[
-            { id: 'sermons', label: 'Sermons', icon: Music },
-            { id: 'events', label: 'Events', icon: Calendar },
-            { id: 'gallery', label: 'Gallery', icon: Image },
-            { id: 'about', label: 'About Page', icon: FileText },
-            { id: 'messages', label: 'Messages', icon: Mail },
-            { id: 'settings', label: 'Settings', icon: Settings }
-          ].map(({ id, label, icon: Icon }) => (
+            { id: 'sermons', label: 'Sermons', icon: Music, short: 'Sermons' },
+            { id: 'events', label: 'Events', icon: Calendar, short: 'Events' },
+            { id: 'gallery', label: 'Gallery', icon: Image, short: 'Gallery' },
+            { id: 'about', label: 'About', icon: FileText, short: 'About' },
+            { id: 'messages', label: 'Messages', icon: Mail, short: 'Msgs' },
+            { id: 'settings', label: 'Settings', icon: Settings, short: 'Settings' }
+          ].map(({ id, label, icon: Icon, short }) => (
             <Button
               key={id}
               variant={activeTab === id ? "default" : "ghost"}
               onClick={() => setActiveTab(id)}
-              className="flex-1 min-w-0 sm:min-w-[120px]"
+              className="flex-1 min-w-[calc(50%-4px)] sm:min-w-[120px] text-xs sm:text-sm"
             >
-              <Icon className="w-4 h-4 mr-1 sm:mr-2" />
-              <span className="hidden xs:inline">{label}</span>
-              <span className="xs:hidden">{label.charAt(0)}</span>
+              <Icon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{short}</span>
             </Button>
           ))}
         </div>
@@ -1341,7 +1341,7 @@ const startEditEvent = (event: Event) => {
                     Upload Gallery Images
                   </CardTitle>
                   <CardDescription>
-                    Drag and drop images or click to browse. Supports JPG, PNG, GIF, WebP formats.
+                    Drag and drop images or click to browse. Only JPG and PNG formats are supported.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -1366,7 +1366,7 @@ const startEditEvent = (event: Event) => {
                   </div>
                   <FileUpload
                     type="gallery"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png"
                     maxSize={10}
                     multiple={true}
                     onUploadComplete={(file) => {
@@ -1479,56 +1479,102 @@ const startEditEvent = (event: Event) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {uploadedFiles
                       .filter(file => file.type === 'gallery')
-                      .map((file) => (
-                        <div key={file.id || file._id} className="border rounded-lg p-4 space-y-3">
-                          <div className="relative group">
-                            <img
-                              src={file.url}
-                              alt={file.originalName}
-                              className="w-full h-48 object-cover rounded-lg"
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                              <div className="flex space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => window.open(file.url, '_blank')}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => {
-                                    console.log('Delete button clicked for file:', file)
-                                    const fileId = file.id || file._id || file._id?.toString()
-                                    console.log('File ID:', fileId)
-                                    handleDeleteFile(fileId, file.originalName)
+                      .map((file) => {
+                        // Validate image format - check if it's corrupted or invalid
+                        const urlLower = (file.url || '').toLowerCase()
+                        const mimeLower = (file.mimeType || '').toLowerCase()
+                        const isValidFormat = 
+                          urlLower.endsWith('.jpg') || 
+                          urlLower.endsWith('.jpeg') || 
+                          urlLower.endsWith('.png') ||
+                          mimeLower === 'image/jpeg' || 
+                          mimeLower === 'image/jpg' || 
+                          mimeLower === 'image/png'
+                        
+                        const isCorrupted = !isValidFormat
+                        
+                        return (
+                          <div key={file.id || file._id} className={`border rounded-lg p-4 space-y-3 ${isCorrupted ? 'border-red-300 bg-red-50/50' : ''}`}>
+                            <div className="relative group">
+                              {isCorrupted ? (
+                                <div className="w-full h-48 bg-muted rounded-lg flex flex-col items-center justify-center space-y-2">
+                                  <AlertCircle className="w-8 h-8 text-red-500" />
+                                  <p className="text-xs text-red-600 font-medium">Invalid Format</p>
+                                  <p className="text-xs text-muted-foreground">Not JPG/PNG</p>
+                                </div>
+                              ) : (
+                                <img
+                                  src={file.url}
+                                  alt={file.originalName}
+                                  className="w-full h-48 object-cover rounded-lg"
+                                  onError={(e) => {
+                                    // Mark as corrupted if image fails to load
+                                    const target = e.target as HTMLImageElement
+                                    target.style.display = 'none'
+                                    const parent = target.parentElement
+                                    if (parent) {
+                                      parent.innerHTML = `
+                                        <div class="w-full h-48 bg-muted rounded-lg flex flex-col items-center justify-center space-y-2">
+                                          <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                          </svg>
+                                          <p class="text-xs text-red-600 font-medium">Corrupted Image</p>
+                                        </div>
+                                      `
+                                    }
                                   }}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                                />
+                              )}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                <div className="flex space-x-2">
+                                  {!isCorrupted && (
+                                    <Button
+                                      size="sm"
+                                      variant="secondary"
+                                      onClick={() => window.open(file.url, '_blank')}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => {
+                                      console.log('Delete button clicked for file:', file)
+                                      const fileId = file.id || file._id || file._id?.toString()
+                                      console.log('File ID:', fileId)
+                                      handleDeleteFile(fileId, file.originalName)
+                                    }}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
                             </div>
+                            <div className="space-y-2">
+                              <h4 className="font-medium text-sm line-clamp-2">
+                                {file.metadata?.title || file.originalName}
+                              </h4>
+                              {isCorrupted && (
+                                <span className="inline-block text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                  Invalid Format - Delete Available
+                                </span>
+                              )}
+                              {file.metadata?.album && (
+                                <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                                  {file.metadata.album}
+                                </span>
+                              )}
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(file.uploadedAt).toLocaleDateString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <h4 className="font-medium text-sm line-clamp-2">
-                              {file.metadata?.title || file.originalName}
-                            </h4>
-                            {file.metadata?.album && (
-                              <span className="inline-block text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                                {file.metadata.album}
-                              </span>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(file.uploadedAt).toLocaleDateString()}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                   </div>
                   {uploadedFiles.filter(f => f.type === 'gallery').length === 0 && (
                     <div className="text-center py-12">
@@ -1796,8 +1842,8 @@ const startEditEvent = (event: Event) => {
                         />
                         <p className="text-xs text-muted-foreground mt-1 mb-2">Paste image URL or upload image below</p>
                         <FileUpload
-                          type="gallery"
-                          accept="image/*"
+                          type="settings"
+                          accept="image/jpeg,image/jpg,image/png"
                           maxSize={5}
                           multiple={false}
                           onUploadComplete={handleLeaderPhotoUpload}
@@ -1892,31 +1938,31 @@ const startEditEvent = (event: Event) => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {contactMessages.map((message) => (
+                    {contactMessages.map((message) => (
                     <div key={message.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">{message.name}</h3>
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-base sm:text-lg break-words">{message.name}</h3>
                             {message.status === 'new' && (
-                              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
+                              <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded flex-shrink-0">
                                 New
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground">{message.email}</p>
+                          <p className="text-sm text-muted-foreground break-words">{message.email}</p>
                           {message.phone && (
                             <p className="text-sm text-muted-foreground">{message.phone}</p>
                           )}
                           {message.subject && (
-                            <p className="text-sm font-medium mt-2">Subject: {message.subject}</p>
+                            <p className="text-sm font-medium mt-2 break-words">Subject: {message.subject}</p>
                           )}
-                          <p className="mt-2">{message.message}</p>
+                          <p className="mt-2 text-sm sm:text-base break-words">{message.message}</p>
                           <p className="text-xs text-muted-foreground mt-2">
                             {new Date(message.created_at || message.date || Date.now()).toLocaleString()}
                           </p>
                         </div>
-                        <div className="flex gap-2 ml-4">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-4">
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -1942,6 +1988,7 @@ const startEditEvent = (event: Event) => {
                                 })
                               }
                             }}
+                            className="w-full sm:w-auto"
                           >
                             Mark as Read
                           </Button>
@@ -1969,6 +2016,7 @@ const startEditEvent = (event: Event) => {
                                 })
                               }
                             }}
+                            className="w-full sm:w-auto"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

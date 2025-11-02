@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Heart, Users, BookOpen, Globe, Award, User, Clock, MapPin, Phone, Mail } from "lucide-react"
 import Link from "next/link"
 import { ChurchLogo } from "@/components/church-logo"
-import Image from "next/image"
+import { OptimizedImage } from "@/components/optimized-image"
 import { useSettings } from "@/components/settings-provider"
 
 // Icon mapping
@@ -276,13 +276,13 @@ export default function AboutPage() {
                 <Card key={leader.id || index} className="text-center overflow-hidden">
                   <CardHeader>
                     <div className="mx-auto w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-primary/20 shadow-lg">
-                      <Image
+                      <OptimizedImage
                         src={leader.image || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"}
                         alt={leader.name}
                         width={128}
                         height={128}
                         className="w-full h-full object-cover"
-                        unoptimized
+                        priority={index < 3}
                       />
                     </div>
                     <CardTitle className="text-xl">{leader.name}</CardTitle>
@@ -303,13 +303,14 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <Card className="text-center overflow-hidden">
                 <CardHeader>
-                  <div className="mx-auto w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-primary/20 shadow-lg">
-                    <Image 
+                  <div className="mx-auto w-32 h-32 rounded-full overflow-hidden mb-4 border-4 border-primary/20 shadow-lg relative">
+                    <OptimizedImage 
                       src={settings?.aboutImage || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face"} 
                       alt={settings?.pastorName || "Pastor"}
                       width={128}
                       height={128}
                       className="w-full h-full object-cover"
+                      priority={true}
                     />
                   </div>
                   <CardTitle className="text-xl">{settings?.pastorName || "Rev. John Joseph Hayab"}</CardTitle>

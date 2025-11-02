@@ -109,6 +109,20 @@ body {
   animation: spin 1s linear infinite;
 }
 
+/* Shimmer animation for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
 /* Focus styles */
 .focus-visible\:outline-none:focus-visible {
   outline: none;

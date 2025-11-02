@@ -173,20 +173,20 @@ export default function AdminGivingPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-secondary/10 py-8 px-4 sm:px-6 lg:px-8">
       <div className="container mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-2">Giving Transactions</h1>
-          <p className="text-muted-foreground">View and manage all giving transactions</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-2">Giving Transactions</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">View and manage all giving transactions</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.total}</div>
+              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
             </CardContent>
           </Card>
           <Card>
@@ -195,7 +195,7 @@ export default function AdminGivingPage() {
               <CheckCircle className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.successful}</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.successful}</div>
             </CardContent>
           </Card>
           <Card>
@@ -204,7 +204,7 @@ export default function AdminGivingPage() {
               <Clock className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+              <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.pending}</div>
             </CardContent>
           </Card>
           <Card>
@@ -213,7 +213,7 @@ export default function AdminGivingPage() {
               <DollarSign className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">
+              <div className="text-lg sm:text-2xl font-bold text-primary break-words">
                 ₦{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </CardContent>
@@ -222,14 +222,15 @@ export default function AdminGivingPage() {
 
         {/* Filters and Actions */}
         <Card className="mb-6">
-          <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Label htmlFor="status-filter">Filter by Status:</Label>
+          <CardContent className="pt-4 sm:pt-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                <Label htmlFor="status-filter" className="text-sm sm:text-base whitespace-nowrap">Filter by Status:</Label>
                 <Select
                   id="status-filter"
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full sm:w-auto"
                 >
                   <option value="all">All</option>
                   <option value="successful">Successful</option>
@@ -237,12 +238,12 @@ export default function AdminGivingPage() {
                   <option value="failed">Failed</option>
                 </Select>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={loadTransactions} disabled={loading}>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={loadTransactions} disabled={loading} className="w-full sm:w-auto">
                   <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                   Refresh
                 </Button>
-                <Button variant="outline" onClick={exportToCSV} disabled={transactions.length === 0}>
+                <Button variant="outline" onClick={exportToCSV} disabled={transactions.length === 0} className="w-full sm:w-auto">
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV
                 </Button>

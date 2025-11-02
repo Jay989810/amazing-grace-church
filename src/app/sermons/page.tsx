@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { ChurchLogo } from "@/components/church-logo"
 import { useRealtimeData } from "@/hooks/use-realtime-data"
+import { OptimizedImage } from "@/components/optimized-image"
 
 interface Sermon {
   id: string
@@ -252,10 +253,12 @@ export default function SermonsPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredSermons.map((sermon) => {
+              {filteredSermons.map((sermon, index) => {
                 const isAudio = isAudioSermon(sermon)
                 const isVideo = isVideoSermon(sermon)
                 const isPlaying = playingSermon === sermon.id
+                // Priority loading for first 6 sermons (above the fold)
+                const isPriority = index < 6
                 
                 return (
                   <Card key={sermon.id} className="overflow-hidden">
@@ -289,10 +292,13 @@ export default function SermonsPage() {
                           </Button>
                         </>
                       ) : sermon.thumbnail && sermon.thumbnail !== '#' ? (
-                        <img
+                        <OptimizedImage
                           src={sermon.thumbnail}
                           alt={sermon.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          objectFit="cover"
+                          priority={isPriority}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-primary/20 to-secondary/20">
