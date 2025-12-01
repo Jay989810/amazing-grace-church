@@ -158,7 +158,7 @@ export default function Footer({ darkMode }: { darkMode?: boolean }) {
         {/* Developer Credit Section */}
         <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-primary-foreground/20'} mt-6 pt-6`}>
           <div className={`flex flex-col sm:flex-row items-center justify-center gap-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-primary-foreground/80'}`}>
-            <span>Developed by</span>
+            <span>Made with ❤️ by</span>
             <a
               href={whatsappLink}
               target="_blank"
